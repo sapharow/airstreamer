@@ -64,7 +64,6 @@ namespace fp {
 			virtual void doStop() = 0;
 
 		private:
-			DECLARE_STRUCT(Payload);
 			std::recursive_mutex m_Mutex;
 			bool m_Started = false;
 			bool m_ThreadFinished = false;

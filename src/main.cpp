@@ -29,10 +29,10 @@ public:
 
 int main(int argc, char **argv)
 {
-	fp::cap::FileSource src("test.dvb");
+	fp::cap::FileSource src("mpt-smart-travels-classical-clip.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
 	src.setProgramProvider([](uint32_t pid)->fp::cap::ProgramRef{
-		printf("Found new PID %u\n", pid);
+		printf("Found new PID 0x%04x\n", pid);
 		return std::make_shared<MyProgram>(pid);
 	});
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace fp {
 
@@ -20,6 +21,7 @@ namespace fp {
 		DECLARE_CLASS(FileSource);
 		DECLARE_CLASS(DVBSource);
 		DECLARE_CLASS(Program);
+		DECLARE_STRUCT(TSPayload);
 	}
 
 	typedef std::string String;

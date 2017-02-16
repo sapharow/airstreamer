@@ -71,6 +71,8 @@ set(LIB_AIRSTREAM_SOURCES
         ${LIB_AIRSTREAM_PATH}/tsSource.cpp
         ${LIB_AIRSTREAM_PATH}/fileSource.cpp
         ${LIB_AIRSTREAM_PATH}/dvbSource.cpp
+        ${LIB_AIRSTREAM_PATH}/pidPayload.cpp
+        ${LIB_AIRSTREAM_PATH}/libdvbv5-patch/mpeg_pes.c
         ${LIB_AIRSTREAM_PATH}/program.cpp
         )
 
