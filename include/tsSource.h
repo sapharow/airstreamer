@@ -37,12 +37,24 @@ namespace fp {
 			 */
 			bool running();
 
-			/**
-			 * Set user-defined stream provider
-			 */
-			void setStreamProvider(StreamProvider sp);
-
 		protected:
+
+			/**
+			 * Called when program is spawned and attached to this source
+			 * Once spawned its streams will continuously receive payload
+			 * @param[in] program Program created
+			 */
+			virtual void programSpawned(const ProgramRef& program) {}
+
+			/**
+			 * Called when source needs to create stream
+			 * @param[in] id Stream ID
+			 * @param[in] type Stream type
+			 * @param[in] sync Set to true if this stream is used for synchronisation
+			 * @return created stream
+			 */
+			virtual StreamRef createStream(uint32_t id, Stream::Type type, bool sync) = 0;
+
 			/**
 			 * Read transport stream data into memory buffer
 			 * @param[in] buffer Destination buffer pointer
@@ -67,7 +79,6 @@ namespace fp {
 			std::recursive_mutex m_Mutex;
 			bool m_Started = false;
 			bool m_ThreadFinished = false;
-			StreamProvider m_StreamProvider;
 
 			std::shared_ptr<std::thread> m_Thread;
 			std::unordered_set<uint32_t> m_PMTs;

@@ -67,7 +67,5 @@ namespace fp {
 			Type m_Type;
 			bool m_Sync;
 		};
-
-		typedef std::function<StreamRef(uint32_t streamId, Stream::Type type, bool sync)> StreamProvider;
 	}
 }

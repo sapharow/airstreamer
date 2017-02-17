@@ -2,6 +2,7 @@
 #include <dvbSource.h>
 #include <fileSource.h>
 #include <stream.h>
+#include <program.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0
@@ -52,14 +53,23 @@ private:
 
 };
 
+class MySource : public fp::cap::FileSource {
+public:
+	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
+	fp::cap::StreamRef createStream(uint32_t id, fp::cap::Stream::Type type, bool sync) override {
+		return std::make_shared<MyStream>(id, type, sync);
+	}	
+	void programSpawned(const fp::cap::ProgramRef& program) {
+		printf("New program found %u\n", program->id());
+	}
+};
+
+
 int main(int argc, char **argv)
 {
 //	fp::cap::FileSource src("mpt-smart-travels-classical-clip.dvb");
-	fp::cap::FileSource src("football.dvb");
+	MySource src("football.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
-	src.setStreamProvider([](uint32_t id, fp::cap::Stream::Type type, bool sync)->fp::cap::StreamRef{
-		return std::make_shared<MyStream>(id, type, sync);
-	});
 
 	src.start();
 	while (src.running()) {

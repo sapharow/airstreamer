@@ -7,7 +7,8 @@ namespace fp {
 
 		class PMTHandler : public fp::cap::Stream {
 		public:
-			typedef std::function<void(const ProgramRef& program)> ReceivedProgram;
+			typedef std::function<StreamRef(uint32_t, Stream::Type, bool)> CreateStream;
+			typedef std::function<void(ProgramRef)> SpawnProgram;
 
 			/**
 			 * Create PAT handler
@@ -15,7 +16,7 @@ namespace fp {
 			 * @param[in] serviceID Service ID this PAT relates to
 			 * @param[in] receivedStreams Callback which fires once PMT received list of streams
 			 */
-			PMTHandler(uint32_t serviceId, StreamProvider sp, ReceivedProgram);
+			PMTHandler(uint32_t serviceId, CreateStream cs, SpawnProgram sp);
 			~PMTHandler() override;
 			void supplyData(const uint8_t* data, size_t size, Metadata*) override;
 
@@ -28,9 +29,9 @@ namespace fp {
 			void clear();
 			dvb_table_pmt* m_PMT = nullptr;
 			uint32_t m_ServiceId;
-			StreamProvider m_SP;
-			ReceivedProgram m_ReceivedProgram;
 			ProgramRef m_Program;
+			CreateStream m_CreateStream;
+			SpawnProgram m_SpawnProgram;
 		};
 
 	}

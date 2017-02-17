@@ -90,14 +90,15 @@ namespace fp {
 											// Create PMT handlers for received PIDs
 											if (!pidPayload[service.first]) {
 												auto pmtHandler = std::make_shared<PMTHandler>(service.second, 
-												                                               thiz->m_StreamProvider,
-												                                               [&pidPayload](const ProgramRef& program) {
-												                                               		// Create ES handlers for received PIDs
-												                                               		for (auto stream : program->streams()) {
-												                                               			if (!pidPayload[stream->id()]) {
-												                                               				pidPayload[stream->id()] = new PaketisedESPayloadHandler(stream);
-												                                               			}
-												                                               		}
+												                                               [&pidPayload, thiz](uint32_t id, Stream::Type type, bool sync){
+												                                               	auto localStream = thiz->createStream(id, type, sync);
+												                                               	if (!pidPayload[id]) {
+												                                               		pidPayload[id] = new PaketisedESPayloadHandler(localStream);
+												                                               	}
+												                                               	return localStream;
+												                                               },
+												                                               [thiz](const ProgramRef& program) {
+												                                               	thiz->programSpawned(program);
 												                                               });
 												pidPayload[service.first] = new PaketisedPayloadHandler(pmtHandler);
 											}
@@ -149,11 +150,6 @@ namespace fp {
 				}
 			}
 			free(tsPacket);
-		}
-
-		void TSSource::setStreamProvider(StreamProvider sp) {
-			std::lock_guard<std::recursive_mutex> lock(m_Mutex);
-			m_StreamProvider = sp;
 		}
 
 	}
