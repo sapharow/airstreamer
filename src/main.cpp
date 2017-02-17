@@ -42,7 +42,7 @@ public:
 		fclose(m_File);
 	}
 
-	void supplyData(/*uint64_t* pts, uint64_t* dts, */const uint8_t* data, size_t size) override {
+	void supplyData(const uint8_t* data, size_t size, Metadata* metadata) override {
 		if (m_File) {
 			fwrite(data, 1, size, m_File);
 		}
@@ -54,8 +54,8 @@ private:
 
 int main(int argc, char **argv)
 {
-	fp::cap::FileSource src("mpt-smart-travels-classical-clip.dvb");
-//	fp::cap::FileSource src("football.dvb");
+//	fp::cap::FileSource src("mpt-smart-travels-classical-clip.dvb");
+	fp::cap::FileSource src("football.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
 	src.setStreamProvider([](uint32_t id, fp::cap::Stream::Type type, bool sync)->fp::cap::StreamRef{
 		return std::make_shared<MyStream>(id, type, sync);

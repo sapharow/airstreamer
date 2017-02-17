@@ -114,18 +114,16 @@ namespace fp {
 										// Restart payload collection
 										pidPayload[tsPacket->pid]->reset();
 									}
+									if (tsPacket->adaptation_field && tsPacket->adaption->PCR) {
+//										tsPacket->adaption->data
+									}
 									pidPayload[tsPacket->pid]->append(bufferReadPtr + tableSize, 
 									                                  188 - tableSize, 
 									                                  tsPacket->continuity_counter,
-									                                  tsPacket->payload & 1);
+									                                  tsPacket->payload & 1
+									                                  );
 								} else {
 									printf("no payload (pid=%u)\n", tsPacket->pid);
-								}
-
-								if (tsPacket->adaptation_field) {
-									if (tsPacket->adaption->PCR) {
-	//									printf("pid: %u, PCR\n", tsPacket->pid);
-									}
 								}
 							}
 						}

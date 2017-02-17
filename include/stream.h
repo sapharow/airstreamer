@@ -14,6 +14,14 @@ namespace fp {
 		 */
 		class Stream {
 		public:
+			/**
+			 * Stream metadata which optionally can be supplied 
+			 */
+			struct Metadata {
+				uint64_t* dts;	// Decode timestamp
+				uint64_t* pts;	// Presentation timestamp
+			};
+
 			enum class Type {
 				Video_H261,
 				Video_H262,
@@ -52,7 +60,7 @@ namespace fp {
 			 * @param[in] data Data to supply
 			 * @param[in] size Size of data
 			 */
-			virtual void supplyData(const uint8_t* data, size_t size) = 0;
+			virtual void supplyData(const uint8_t* data, size_t size, Metadata* = nullptr) = 0;
 
 		private:
 			uint32_t m_ID;

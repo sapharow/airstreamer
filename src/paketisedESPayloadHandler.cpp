@@ -25,13 +25,22 @@ namespace fp {
 						// PES table is correct
 						size_t nBytesToSupply = dataSize() - pesSize;
 						if (nBytesToSupply) {
-							stream->supplyData(
-							                     /*
-							                            (m_PESTable->optional->PTS_DTS & 0x2) ? &m_PESTable->optional->pts : nullptr,
-							                            (m_PESTable->optional->PTS_DTS & 0x1) ? &m_PESTable->optional->dts : nullptr,
-							                            */
-							                            data() + pesSize, 
-							                            nBytesToSupply);
+
+							Stream::Metadata metadata = { nullptr, nullptr };
+							Stream::Metadata* metadataPtr = nullptr;
+							if (m_PESTable->optional->PTS_DTS & 0x2) {
+								metadata.pts = &m_PESTable->optional->pts;
+								metadataPtr = &metadata;
+							}
+							if (m_PESTable->optional->PTS_DTS & 0x1) {
+								metadata.dts = &m_PESTable->optional->dts;
+								metadataPtr = &metadata;
+							}
+
+							if (m_PESTable->optional)
+							stream->supplyData(data() + pesSize, 
+							                   nBytesToSupply,
+							                   metadataPtr);
 						}
 						return;
 					}

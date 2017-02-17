@@ -17,7 +17,7 @@ namespace fp {
 			 */
 			PATHandler(ReceivedServices receivedServices);
 			~PATHandler() override;
-			void supplyData(const uint8_t* data, size_t size) override;
+			void supplyData(const uint8_t* data, size_t size, Metadata*) override;
 
 			/**
 			 * Get PMT_PID -> ServiceID

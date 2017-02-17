@@ -17,7 +17,7 @@ namespace fp {
 			 */
 			PMTHandler(uint32_t serviceId, StreamProvider sp, ReceivedProgram);
 			~PMTHandler() override;
-			void supplyData(const uint8_t* data, size_t size) override;
+			void supplyData(const uint8_t* data, size_t size, Metadata*) override;
 
 			/**
 			 * Get associated serviceID
