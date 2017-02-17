@@ -25,7 +25,7 @@ public:
 		}
 	}
 
-	void supplyES(Stream stream, uint32_t streamId, const uint8_t* data, size_t size) override {
+	void supplyES(Stream stream, uint32_t streamId, uint64_t* pts, uint64_t* dts, const uint8_t* data, size_t size) override {
 		char buffer[256];
 		memset(buffer, 0, 256);
 		switch (stream) {

@@ -65,17 +65,23 @@ namespace fp {
 									stream = ProgramReceiver::Stream::H222E;
 									break;
 								default:
-									// unkown PES
-									printf("Unknown stream 0x%02u\n", m_PESTable->stream_id);
+									stream = ProgramReceiver::Stream::Unknown;
 							}
-							m_ProgramReceiver->supplyES(stream, m_PESTable->stream_id, m_Data.data() + pesSize, nBytesToSupply);
-						}
+							bool bPTS = (m_PESTable->optional->PTS_DTS & 2);
+							bool bDTS = (m_PESTable->optional->PTS_DTS & 1);
 
-						if (m_PESTable->optional->data_alignment_indicator) {
-							if (m_ProgramReceiver) {
+							if (m_PESTable->optional->data_alignment_indicator) {
+								if (m_ProgramReceiver) {
+								}
+							} else {
+								printf("Data is NOT aligned. TODO!!!\n");
 							}
-						} else {
-							printf("Data is NOT aligned. TODO!!!\n");
+							m_ProgramReceiver->supplyES(stream, 
+							                            m_PESTable->stream_id, 
+							                            (m_PESTable->optional->PTS_DTS & 0x2) ? &m_PESTable->optional->pts : nullptr,
+							                            (m_PESTable->optional->PTS_DTS & 0x1) ? &m_PESTable->optional->dts : nullptr,
+							                            m_Data.data() + pesSize, 
+							                            nBytesToSupply);
 						}
 					}
 //					printf("Optional fields length = %u\n", m_PESTable->optional->length);

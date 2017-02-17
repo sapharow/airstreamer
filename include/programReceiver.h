@@ -22,7 +22,8 @@ namespace fp {
 				EMM,
 				Directory,
 				DSMCC,
-				H222E
+				H222E,
+				Unknown
 			};
 			/**
 			 * Create program with given PID
@@ -46,10 +47,13 @@ namespace fp {
 			/**
 			 * If payload is identified as Elementary stream it is being supplied to this function
 			 * @param[in] stream Stream type
+			 * @param[in] streamId Stream ID
+			 * @param[in] pts Presentation timestamp (optional, can be nullptr)
+			 * @param[in] dts Decoding timestamp (optional, can be nullptr)
 			 * @param[in] data Payload data
 			 * @param[in] size Payload size
 			 */
-			virtual void supplyES(Stream stream, uint32_t streamId, const uint8_t* data, size_t size) {};
+			virtual void supplyES(Stream stream, uint32_t streamId, uint64_t* pts, uint64_t* dts, const uint8_t* data, size_t size) {};
 
 		private:
 			uint32_t m_PID;
