@@ -1,9 +1,12 @@
 #include <tsSource.h>
-#include "programPayloadHandler.h"
+#include "paketisedPayloadHandler.h"
+#include "paketisedESPayloadHandler.h"
 #include <libdvbv5/dvb-fe.h>
 #include <libdvbv5/mpeg_ts.h>
-#include <libdvbv5/pat.h>
-#include <programReceiver.h>
+#include <libdvbv5/pmt.h>
+#include "patHandler.h"
+#include "pmtHandler.h"
+#include <program.h>
 #include <cassert>
 
 /**
@@ -14,46 +17,8 @@
 namespace fp {
 	namespace cap {
 
-		class PATHandler : public fp::cap::ProgramReceiver {
-		public:
-			PATHandler(uint32_t pid)
-			: fp::cap::ProgramReceiver(pid)
-			{ }
-
-			~PATHandler() override {
-				clear();
-			}
-
-			void supplyPayload(const uint8_t* data, size_t size) override {
-				// PAT table
-				if (!m_PAT) {
-					ssize_t patSize = dvb_table_pat_init(dvb_fe_dummy(), data, size, &m_PAT);
-					if (patSize != -1) {
-						printf("Transport stream ID = 0x%02u\n", m_PAT->header.id);
-						dvb_pat_program_foreach(program, m_PAT) {
-							if (program->service_id == 0) {
-								printf("Network ID = 0x%02x\n", program->pid);
-							} else {
-								printf("Program number 0x%02x > Program map PID 0x%02x\n", program->service_id, program->pid);
-							}
-						}
-					}
-				}
-			}
-
-		private:
-			void clear() {
-				if (m_PAT) {
-					dvb_table_pat_free(m_PAT);
-					m_PAT = nullptr;
-				}
-			}
-			dvb_table_pat* m_PAT = nullptr;
-		};
-
 		TSSource::TSSource() 
-		{
-		}
+		{ }
 
 		TSSource::~TSSource() {
 			std::lock_guard<std::recursive_mutex> lock(m_Mutex);
@@ -90,7 +55,7 @@ namespace fp {
 
 		void TSSource::mainLoop(TSSource* thiz) {
 			// Allocate buffer
-			std::vector<ProgramPayloadHandler*> pidPayload(8192);
+			std::vector<PaketisedPayloadHandler*> pidPayload(8192);
 
 			std::vector<uint8_t> buffer(READ_BUFFER);
 			thiz->m_ThreadFinished = false;
@@ -115,50 +80,62 @@ namespace fp {
 						tableSize = dvb_mpeg_ts_init(dvb_fe_dummy(), bufferReadPtr, bufferWritePtr - bufferReadPtr, (uint8_t*)tsPacket, &tableSize);
 						if (tableSize <= 188) {
 							if (!pidPayload[tsPacket->pid]) {
-								ProgramReceiverRef programReceiver;
-								// Allocate payload info
-								std::lock_guard<std::recursive_mutex> lock(thiz->m_Mutex);
 
 								// Create custom programs handler
-								switch (tsPacket->pid) {
-									case 0x0000:
-										// Program association table
-										programReceiver = std::make_shared<PATHandler>((uint32_t)tsPacket->pid);
-										break;
-
-									case 0x1fff:
-										// Do nothing for null packet
-										continue;
-									break;
-
-									case 0x1ffb:
-										// Used by DigiCipher 2/ATSC MGT metadata
-										continue;
-									break;
+								if (tsPacket->pid == 0x0000) {
+									// Found program association table (PAT)
+									auto patHandler = std::make_shared<PATHandler>([&pidPayload, thiz](const PATHandler::Services& services) {
+										// Services created, create payload handlers for PMTs
+										for (auto service : services) {
+											// Create PMT handlers for received PIDs
+											if (!pidPayload[service.first]) {
+												auto pmtHandler = std::make_shared<PMTHandler>(service.second, 
+												                                               thiz->m_StreamProvider,
+												                                               [&pidPayload](const ProgramRef& program) {
+												                                               		// Create ES handlers for received PIDs
+												                                               		for (auto stream : program->streams()) {
+												                                               			if (!pidPayload[stream->id()]) {
+												                                               				pidPayload[stream->id()] = new PaketisedESPayloadHandler(stream);
+												                                               			}
+												                                               		}
+/*
+												                                               	printf("Received program 0x%04x with streams { ", 
+												                                               	       program->id());
+												                                               	for (auto i : program->streams()) {
+												                                               		printf("0x%04x", i->id());
+												                                               		if (i->sync()) printf("*");
+												                                               		printf(" ");
+												                                               	}
+												                                               	printf("}\n");
+*/
+												                                               });
+												pidPayload[service.first] = new PaketisedPayloadHandler(pmtHandler);
+											}
+										}
+									});
+									pidPayload[tsPacket->pid] = new PaketisedPayloadHandler(patHandler);
 								}
-								if (!programReceiver) {
-									auto prp = thiz->m_ProgramReceiverProvider;
-									if (prp) {
-										programReceiver = prp(tsPacket->pid);
+							}
+
+							// Process packets according to provided handlers
+							if (pidPayload[tsPacket->pid]) {
+								if (tsPacket->payload) {
+									if (tsPacket->payload_start) {
+										// Restart payload collection
+										pidPayload[tsPacket->pid]->reset();
 									}
+									pidPayload[tsPacket->pid]->append(bufferReadPtr + tableSize, 
+									                                  188 - tableSize, 
+									                                  tsPacket->continuity_counter,
+									                                  tsPacket->payload & 1);
+								} else {
+									printf("no payload (pid=%u)\n", tsPacket->pid);
 								}
-								pidPayload[tsPacket->pid] = new ProgramPayloadHandler(programReceiver, tsPacket->pid);
-							}
 
-							if (tsPacket->payload) {
-								if (tsPacket->payload_start) {
-									// Restart payload collection
-									pidPayload[tsPacket->pid]->reset();
-								}
-								assert(tableSize <= 188);
-								pidPayload[tsPacket->pid]->append(bufferReadPtr + tableSize, 188 - tableSize, tsPacket->continuity_counter);
-							} else {
-								printf("no payload (pid=%u)\n", tsPacket->pid);
-							}
-
-							if (tsPacket->adaptation_field) {
-								if (tsPacket->adaption->PCR) {
-//									printf("pid: %u, PCR\n", tsPacket->pid);
+								if (tsPacket->adaptation_field) {
+									if (tsPacket->adaption->PCR) {
+	//									printf("pid: %u, PCR\n", tsPacket->pid);
+									}
 								}
 							}
 						}
@@ -186,9 +163,9 @@ namespace fp {
 			free(tsPacket);
 		}
 
-		void TSSource::setProgramReceiverProvider(ProgramReceiverProvider prp) {
+		void TSSource::setStreamProvider(StreamProvider sp) {
 			std::lock_guard<std::recursive_mutex> lock(m_Mutex);
-			m_ProgramReceiverProvider = prp;
+			m_StreamProvider = sp;
 		}
 
 	}

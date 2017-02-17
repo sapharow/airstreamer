@@ -4,6 +4,8 @@
 #include <thread>
 #include <vector>
 #include <functional>
+#include <unordered_set>
+#include <stream.h>
 
 namespace fp {
 
@@ -17,7 +19,6 @@ namespace fp {
 		 */
 		class TSSource {
 		public:
-			typedef std::function<ProgramReceiverRef(uint32_t pid)> ProgramReceiverProvider;
 			TSSource();
 			virtual ~TSSource();
 
@@ -37,10 +38,9 @@ namespace fp {
 			bool running();
 
 			/**
-			 * Set program provider which will create program receiver for given PID
-			 * @param[in] pp Custom program provider. Can be nullptr
+			 * Set user-defined stream provider
 			 */
-			void setProgramReceiverProvider(ProgramReceiverProvider pp);
+			void setStreamProvider(StreamProvider sp);
 
 		protected:
 			/**
@@ -67,9 +67,10 @@ namespace fp {
 			std::recursive_mutex m_Mutex;
 			bool m_Started = false;
 			bool m_ThreadFinished = false;
-			ProgramReceiverProvider m_ProgramReceiverProvider;
+			StreamProvider m_StreamProvider;
 
 			std::shared_ptr<std::thread> m_Thread;
+			std::unordered_set<uint32_t> m_PMTs;
 			static void mainLoop(TSSource* thiz);
 		};
 
