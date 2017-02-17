@@ -10,14 +10,15 @@ namespace fp {
 	namespace cap {
 
 		/**
-		 * PIDPayload is PID payload handler
+		 * PIDPayloadHandler is PID payload handler
 		 */
-		struct PIDPayload {
+		class ProgramPayloadHandler {
+		public:
 			/**
 			 * Create PID payload handler class
 			 */
-			PIDPayload(ProgramRef _program, uint32_t _pid, bool splitAcrossPackets = true);
-			~PIDPayload();
+			ProgramPayloadHandler(ProgramReceiverRef _program, uint32_t _pid);
+			virtual ~ProgramPayloadHandler();
 
 			/**
 			 * Reset payload writer to start new payload
@@ -28,7 +29,7 @@ namespace fp {
 			/**
 			 * Append data to payload
 			 */
-			void append(uint8_t* src, size_t size, size_t ctr);
+			void append(const uint8_t* src, size_t size, size_t ctr);
 
 			/**
 			 * Retrieve data size
@@ -41,13 +42,14 @@ namespace fp {
 			uint8_t* data();
 
 		private:
+			void handlePayload();
+
 			size_t m_Counter = 0;
 			bool   m_Error = true;
 			bool   m_PayloadStart = false;
 			uint32_t m_PID;
 			dvb_mpeg_pes* m_PESTable;
-			ProgramRef m_Program;
-			bool m_SplitAcrossPackets;
+			ProgramReceiverRef m_ProgramReceiver;
 			std::vector<uint8_t> m_Data;
 			size_t m_DataSize = 0;
 		};

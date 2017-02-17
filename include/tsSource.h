@@ -17,7 +17,7 @@ namespace fp {
 		 */
 		class TSSource {
 		public:
-			typedef std::function<ProgramRef(uint32_t pid)> ProgramProvider;
+			typedef std::function<ProgramReceiverRef(uint32_t pid)> ProgramReceiverProvider;
 			TSSource();
 			virtual ~TSSource();
 
@@ -40,7 +40,7 @@ namespace fp {
 			 * Set program provider which will create program receiver for given PID
 			 * @param[in] pp Custom program provider. Can be nullptr
 			 */
-			void setProgramProvider(ProgramProvider pp);
+			void setProgramReceiverProvider(ProgramReceiverProvider pp);
 
 		protected:
 			/**
@@ -67,7 +67,7 @@ namespace fp {
 			std::recursive_mutex m_Mutex;
 			bool m_Started = false;
 			bool m_ThreadFinished = false;
-			ProgramProvider m_ProgramProvider;
+			ProgramReceiverProvider m_ProgramReceiverProvider;
 
 			std::shared_ptr<std::thread> m_Thread;
 			static void mainLoop(TSSource* thiz);

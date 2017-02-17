@@ -20,7 +20,7 @@ namespace fp {
 		DECLARE_CLASS(TSSource);
 		DECLARE_CLASS(FileSource);
 		DECLARE_CLASS(DVBSource);
-		DECLARE_CLASS(Program);
+		DECLARE_CLASS(ProgramReceiver);
 		DECLARE_STRUCT(TSPayload);
 	}
 

@@ -1,14 +1,9 @@
 #include <tsSource.h>
-#include "pidPayload.h"
-#include <vector>
-#include <set>
+#include "programPayloadHandler.h"
 #include <libdvbv5/dvb-fe.h>
 #include <libdvbv5/mpeg_ts.h>
 #include <libdvbv5/pat.h>
-#include "libdvbv5-patch/mpeg_pes.h"
-#include <libdvbv5/descriptors.h>
-#include <memory.h>
-#include <program.h>
+#include <programReceiver.h>
 #include <cassert>
 
 /**
@@ -19,31 +14,33 @@
 namespace fp {
 	namespace cap {
 
-		class PATHandler : public fp::cap::Program {
+		class PATHandler : public fp::cap::ProgramReceiver {
 		public:
 			PATHandler(uint32_t pid)
-			: fp::cap::Program(pid)
+			: fp::cap::ProgramReceiver(pid)
 			{ }
 
 			~PATHandler() override {
 				clear();
 			}
 
-			void supplyStreamPayload(const uint8_t* data, size_t size) override {
+			void supplyPayload(const uint8_t* data, size_t size) override {
 				// PAT table
 				if (!m_PAT) {
 					ssize_t patSize = dvb_table_pat_init(dvb_fe_dummy(), data, size, &m_PAT);
 					if (patSize != -1) {
+						printf("Transport stream ID = 0x%02u\n", m_PAT->header.id);
 						dvb_pat_program_foreach(program, m_PAT) {
 							if (program->service_id == 0) {
 								printf("Network ID = 0x%02x\n", program->pid);
 							} else {
-								printf("Program map PID 0x%02x > Program number 0x%02x\n", program->pid, program->service_id);
+								printf("Program number 0x%02x > Program map PID 0x%02x\n", program->service_id, program->pid);
 							}
 						}
 					}
 				}
 			}
+
 		private:
 			void clear() {
 				if (m_PAT) {
@@ -93,7 +90,7 @@ namespace fp {
 
 		void TSSource::mainLoop(TSSource* thiz) {
 			// Allocate buffer
-			std::vector<PIDPayload*> pidPayload(8192);
+			std::vector<ProgramPayloadHandler*> pidPayload(8192);
 
 			std::vector<uint8_t> buffer(READ_BUFFER);
 			thiz->m_ThreadFinished = false;
@@ -117,9 +114,8 @@ namespace fp {
 					if (bufferReadPtr[0] == DVB_MPEG_TS) {
 						tableSize = dvb_mpeg_ts_init(dvb_fe_dummy(), bufferReadPtr, bufferWritePtr - bufferReadPtr, (uint8_t*)tsPacket, &tableSize);
 						if (tableSize <= 188) {
-
 							if (!pidPayload[tsPacket->pid]) {
-								ProgramRef program;
+								ProgramReceiverRef programReceiver;
 								// Allocate payload info
 								std::lock_guard<std::recursive_mutex> lock(thiz->m_Mutex);
 
@@ -127,7 +123,7 @@ namespace fp {
 								switch (tsPacket->pid) {
 									case 0x0000:
 										// Program association table
-										program = std::make_shared<PATHandler>((uint32_t)tsPacket->pid);
+										programReceiver = std::make_shared<PATHandler>((uint32_t)tsPacket->pid);
 										break;
 
 									case 0x1fff:
@@ -140,13 +136,13 @@ namespace fp {
 										continue;
 									break;
 								}
-								if (!program) {
-									auto pp = thiz->m_ProgramProvider;
-									if (pp) {
-										program = pp(tsPacket->pid);
+								if (!programReceiver) {
+									auto prp = thiz->m_ProgramReceiverProvider;
+									if (prp) {
+										programReceiver = prp(tsPacket->pid);
 									}
 								}
-								pidPayload[tsPacket->pid] = new PIDPayload(program, tsPacket->pid);
+								pidPayload[tsPacket->pid] = new ProgramPayloadHandler(programReceiver, tsPacket->pid);
 							}
 
 							if (tsPacket->payload) {
@@ -181,8 +177,6 @@ namespace fp {
 			}
 			thiz->m_ThreadFinished = true;
 
-			printf("pidPayload.size() = %u\n", (unsigned)pidPayload.size());
-
 			for (size_t i=0; i<pidPayload.size(); i++) {
 				if (pidPayload[i]) {
 					delete(pidPayload[i]);
@@ -192,9 +186,9 @@ namespace fp {
 			free(tsPacket);
 		}
 
-		void TSSource::setProgramProvider(ProgramProvider pp) {
+		void TSSource::setProgramReceiverProvider(ProgramReceiverProvider prp) {
 			std::lock_guard<std::recursive_mutex> lock(m_Mutex);
-			m_ProgramProvider = pp;
+			m_ProgramReceiverProvider = prp;
 		}
 
 	}
