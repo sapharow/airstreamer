@@ -11,76 +11,44 @@ class MyStream : public fp::cap::Stream {
 public:
 	MyStream(uint32_t id, Type type, bool sync)
 	: fp::cap::Stream(id, type, sync)
-	{ }
-/*
-	void supplyData(const uint8_t* data, size_t size) override {
+	{ 
 		char buffer[256];
 		memset(buffer, 0, 256);
-		sprintf(buffer, "%04x.raw", pid());
-
-		FILE* f = fopen(buffer, "ab");
-		if (f) {
-			fwrite(data, 1, size, f);
-			fclose(f);
-		}
-	}
-*/
-	void supplyData(/*uint64_t* pts, uint64_t* dts, */const uint8_t* data, size_t size) override {
-		char buffer[256];
-		memset(buffer, 0, 256);
-		switch (type()) {
-			case Stream::Type::Video_11172_2:
-				sprintf(buffer, "video_%04x.ts", id());
+		switch (type) {
+			case Stream::Type::Video_H261:
+				sprintf(buffer, "video_%04x.mp1", id);
 				break;
-			case Stream::Type::Video_13818_2:
-				sprintf(buffer, "video_%04x.ts", id());
+			case Stream::Type::Video_H262:
+				sprintf(buffer, "video_%04x.mp2", id);
 				break;
 			case Stream::Type::Audio_11172_2:
-				sprintf(buffer, "audio_%04x.ts", id());
+				sprintf(buffer, "audio_%04x.mp1", id);
 				break;
 			case Stream::Type::Audio_13818_2:
-				sprintf(buffer, "audio_%04x.ts", id());
+				sprintf(buffer, "audio_%04x.mp2", id);
 				break;
-/*
-			case Stream::Type::Audio:
-				sprintf(buffer, "audio_%04x.ts", id());
+			case Stream::Type::Audio_AC3:
+				sprintf(buffer, "audio_%04x.ac3", id);
 				break;
-			case Stream::Type::Video:
-				sprintf(buffer, "video_%04x.mp2", id());
-				break;
-			case Stream::Type::Map:
-				sprintf(buffer, "map_%04x.ts", id());
-				break;
-			case Stream::Type::Private2:
-				sprintf(buffer, "private2_%04x.ts", id());
-				break;
-			case Stream::Type::ECM:
-				sprintf(buffer, "ecm_%04x.ts", id());
-				break;
-			case Stream::Type::EMM:
-				sprintf(buffer, "emm_%04x.ts", id());
-				break;
-			case Stream::Type::Directory:
-				sprintf(buffer, "directory_%04x.ts", id());
-				break;
-			case Stream::Type::DSMCC:
-				sprintf(buffer, "dsmcc_%04x.ts", id());
-				break;
-			case Stream::Type::H222E:
-				sprintf(buffer, "h222e_%04x.ts", id());
-				break;
-*/				
 			default:
-				sprintf(buffer, "other_%04x.ts", id());
+				sprintf(buffer, "other_%04x.ts", id);
 			break;
 		}
 
-		FILE* f = fopen(buffer, "ab");
-		if (f) {
-			fwrite(data, 1, size, f);
-			fclose(f);
+		m_File = fopen(buffer, "wb");
+	}
+
+	~MyStream() override {
+		fclose(m_File);
+	}
+
+	void supplyData(/*uint64_t* pts, uint64_t* dts, */const uint8_t* data, size_t size) override {
+		if (m_File) {
+			fwrite(data, 1, size, m_File);
 		}
 	}
+private:
+	FILE* m_File = nullptr;
 
 };
 

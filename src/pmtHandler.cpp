@@ -1,5 +1,6 @@
 #include "pmtHandler.h"
 #include <libdvbv5/dvb-fe.h>
+#include <libdvbv5/descriptors.h>
 #include <program.h>
 
 namespace fp {
@@ -25,23 +26,54 @@ namespace fp {
 						std::vector<StreamRef> streams;
 						dvb_pmt_stream_foreach(stream, m_PMT) {
 							Type type = Type::Other;
+							uint32_t fourCC = 0;
+							uint8_t language[3] = {'u','n','d'};
+
+							dvb_desc_foreach(desc, stream) {
+								switch (desc->type) {
+									case registration_descriptor:
+										// Format identifier
+										if (desc->length >= 4) {
+											fourCC = *(uint32_t*)desc->data;
+										}
+									break;
+									case atsc_ac3_audio_descriptor:
+										// Audio in AC-3 format
+										type = Type::Audio_AC3;
+										break;
+									case iso639_language_descriptor:
+										if (desc->length >= 3) {
+											memcpy(language, desc->data, 3);
+										}
+										break;
+									case video_stream_descriptor:
+										type = Type::Video_H262;
+										break;
+								}
+							}
+
+
 							switch (stream->type) {
-								case 0x01:
-									type = Type::Video_11172_2;
+								case stream_video:
+									type = Type::Video_H261;
 									break;
-								case 0x02:
-									type = Type::Video_13818_2;
+								case stream_video_h262:
+									type = Type::Video_H262;
 									break;
-								case 0x03:
+								case stream_audio:
 									type = Type::Audio_11172_2;
 									break;
-								case 0x04:
+								case stream_audio_13818_3:
 									type = Type::Audio_13818_2;
 									break;
 								default:
-									type = Type::Other;
-									break;
+									if (type == Type::Other) {
+										printf("Other 0x%04x\n", stream->type);
+										type = Type::Other;
+										break;
+									}
 							}
+
 							auto localStream = m_SP(stream->elementary_pid, type, m_PMT->pcr_pid == stream->elementary_pid);
 							if (localStream) {
 								streams.push_back(localStream);

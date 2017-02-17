@@ -25,43 +25,6 @@ namespace fp {
 						// PES table is correct
 						size_t nBytesToSupply = dataSize() - pesSize;
 						if (nBytesToSupply) {
-							/*
-							Stream::Type type;
-							switch (m_PESTable->stream_id) {
-								case DVB_MPEG_PES_AUDIO:
-									type = Stream::Type::Audio;
-									break;
-								case DVB_MPEG_PES_VIDEO:
-									type = Stream::Type::Video;
-									break;
-								case DVB_MPEG_STREAM_MAP:
-									type = Stream::Type::Video;
-									break;
-								case DVB_MPEG_STREAM_PADDING:
-									return;
-									break;
-								case DVB_MPEG_STREAM_PRIVATE_2:
-									type = Stream::Type::Private2;
-									break;
-								case DVB_MPEG_STREAM_ECM:
-									type = Stream::Type::ECM;
-									break;
-								case DVB_MPEG_STREAM_EMM:
-									type = Stream::Type::EMM;
-									break;
-								case DVB_MPEG_STREAM_DIRECTORY:
-									type = Stream::Type::Directory;
-									break;
-								case DVB_MPEG_STREAM_DSMCC:
-									type = Stream::Type::DSMCC;
-									break;
-								case DVB_MPEG_STREAM_H222E:
-									type = Stream::Type::H222E;
-									break;
-								default:
-									type = Stream::Type::Unknown;
-							}
-							*/
 							stream->supplyData(
 							                     /*
 							                            (m_PESTable->optional->PTS_DTS & 0x2) ? &m_PESTable->optional->pts : nullptr,
@@ -72,8 +35,6 @@ namespace fp {
 						}
 						return;
 					}
-//					printf("Optional fields length = %u\n", m_PESTable->optional->length);
-//					printf("stream_id = %u\n", m_PESTable->stream_id);
 				}
 			}
 			PaketisedPayloadHandler::supplyStream(stream);

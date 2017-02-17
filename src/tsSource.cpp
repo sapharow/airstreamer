@@ -98,16 +98,6 @@ namespace fp {
 												                                               				pidPayload[stream->id()] = new PaketisedESPayloadHandler(stream);
 												                                               			}
 												                                               		}
-/*
-												                                               	printf("Received program 0x%04x with streams { ", 
-												                                               	       program->id());
-												                                               	for (auto i : program->streams()) {
-												                                               		printf("0x%04x", i->id());
-												                                               		if (i->sync()) printf("*");
-												                                               		printf(" ");
-												                                               	}
-												                                               	printf("}\n");
-*/
 												                                               });
 												pidPayload[service.first] = new PaketisedPayloadHandler(pmtHandler);
 											}

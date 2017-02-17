@@ -15,25 +15,13 @@ namespace fp {
 		class Stream {
 		public:
 			enum class Type {
-				Video_11172_2,
-				Video_13818_2,
+				Video_H261,
+				Video_H262,
 				Audio_11172_2,
 				Audio_13818_2,
+				Audio_AC3,
 				Other
 			};
-/*
-				Audio,
-				Video,
-				Map,
-				Private2,
-				ECM,
-				EMM,
-				Directory,
-				DSMCC,
-				H222E,
-				Unknown
-			};
-*/
 
 			/**
 			 * Create Stream class
