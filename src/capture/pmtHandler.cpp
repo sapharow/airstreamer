@@ -19,7 +19,7 @@ namespace fp {
 			clear();
 		}
 
-		void PMTHandler::supplyData(const uint8_t* data, size_t size, Metadata*) {
+		void PMTHandler::supplyFrame(const uint8_t* data, size_t size, Metadata*) {
 			if (!m_PMT) {
 				size_t offset = (data[0] == 0) ? 1 : 0;
 				ssize_t pmtSize = dvb_table_pmt_init(dvb_fe_dummy(), data+offset, size-offset, &m_PMT);

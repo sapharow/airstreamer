@@ -59,11 +59,11 @@ namespace fp {
 		uint32_t lang() const;
 
 		/**
-		 * Supply stream with data
+		 * Supply stream with frame data
 		 * @param[in] data Data to supply
 		 * @param[in] size Size of data
 		 */
-		virtual void supplyData(const uint8_t* data, size_t size, Metadata* = nullptr) = 0;
+		virtual void supplyFrame(const uint8_t* data, size_t size, Metadata* = nullptr) = 0;
 
 	private:
 		uint32_t m_ID;

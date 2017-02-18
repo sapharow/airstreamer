@@ -13,7 +13,7 @@ namespace fp {
 			clear();
 		}
 
-		void PATHandler::supplyData(const uint8_t* data, size_t size, Metadata*) {
+		void PATHandler::supplyFrame(const uint8_t* data, size_t size, Metadata*) {
 			// PAT table
 			if (!m_PAT) {
 				size_t offset = (data[0] == 0) ? 1 : 0;

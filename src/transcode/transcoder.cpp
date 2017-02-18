@@ -1,4 +1,5 @@
 #include <transcode/transcoder.h>
+#include <stream.h>
 
 namespace fp {
 	namespace trans {
@@ -13,6 +14,7 @@ namespace fp {
 
 		void Transcoder::supplyFrame(const uint8_t* data, size_t size) {
 			// TODO
+			m_Output->supplyFrame(data, size);
 		}
 		
 	}

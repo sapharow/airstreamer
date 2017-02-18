@@ -56,11 +56,11 @@ public:
 		m_File = fopen(buffer, "wb");
 	}
 
-	void supplyData(const uint8_t* data, size_t size, Metadata* metadata) override {
+	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		if (m_File) {
 			fwrite(data, 1, size, m_File);
 		}
-	}
+		}
 private:
 	FILE* m_File = nullptr;
 
@@ -106,7 +106,7 @@ public:
 		fclose(m_File);
 	}
 
-	void supplyData(const uint8_t* data, size_t size, Metadata* metadata) override {
+	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		// Supply stream data
 		m_Transcoder->supplyFrame(data, size);
 

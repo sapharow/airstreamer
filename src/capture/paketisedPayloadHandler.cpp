@@ -21,7 +21,7 @@ namespace fp {
 			if (!m_DataSize) {
 				return;
 			}
-			stream->supplyData(m_Data.data(), m_DataSize);
+			stream->supplyFrame(m_Data.data(), m_DataSize);
 		}
 
 		void PaketisedPayloadHandler::reset() {

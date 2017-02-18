@@ -38,9 +38,9 @@ namespace fp {
 							}
 
 							if (m_PESTable->optional)
-							stream->supplyData(data() + pesSize, 
-							                   nBytesToSupply,
-							                   metadataPtr);
+							stream->supplyFrame(data() + pesSize, 
+							                   	nBytesToSupply,
+							                   	metadataPtr);
 						}
 						return;
 					}

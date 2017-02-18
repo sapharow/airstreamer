@@ -25,7 +25,7 @@ namespace fp {
 			 */
 			PMTHandler(uint32_t serviceId, CreateStream cs, SpawnProgram sp);
 			~PMTHandler() override;
-			void supplyData(const uint8_t* data, size_t size, Metadata*) override;
+			void supplyFrame(const uint8_t* data, size_t size, Metadata*) override;
 
 			/**
 			 * Get associated serviceID
