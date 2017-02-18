@@ -9,7 +9,7 @@ namespace fp {
 	namespace cap {
 
 		PMTHandler::PMTHandler(uint32_t serviceId, CreateStream cs, SpawnProgram sp)
-		: fp::cap::Stream(0, Type::Other, false, 0)
+		: Stream(0, Type::Other, false, 0)
 		, m_ServiceId(serviceId)
 		, m_CreateStream(cs)
 		, m_SpawnProgram(sp)

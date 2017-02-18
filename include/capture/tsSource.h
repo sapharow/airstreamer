@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include <capture/stream.h>
+#include <stream.h>
 
 namespace fp {
 

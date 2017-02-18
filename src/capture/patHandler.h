@@ -1,12 +1,12 @@
 #pragma once
-#include <capture/stream.h>
+#include <stream.h>
 #include <libdvbv5/pat.h>
 #include <unordered_map>
 
 namespace fp {
 	namespace cap {
 
-		class PATHandler : public fp::cap::Stream {
+		class PATHandler : public Stream {
 		public:
 			typedef std::unordered_map<uint32_t, uint32_t> Services;
 			typedef std::function<void(const Services&)> ReceivedServices;

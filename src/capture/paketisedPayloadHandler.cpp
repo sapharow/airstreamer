@@ -1,6 +1,6 @@
 #include "paketisedPayloadHandler.h"
 #include <libdvbv5/dvb-fe.h>
-#include <capture/stream.h>
+#include <stream.h>
 #include "libdvbv5-patch/mpeg_pes.h"
 
 /**

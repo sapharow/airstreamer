@@ -64,6 +64,11 @@ ADD_DEFINITIONS(-DQT_COMPILING_QSTRING_COMPAT_CPP)
 # Define sources of libPlayer library                                         #
 #                                                                             #
 ###############################################################################
+set(LIB_AIRSTREAM_PATH ${AIRSTREAM_PROJECT_ROOT}/src)
+set(LIB_AIRSTREAM_SOURCES
+        ${LIB_AIRSTREAM_PATH}/stream.cpp
+        )
+
 set(LIB_AIRSTREAM_CAPTURE_PATH ${AIRSTREAM_PROJECT_ROOT}/src/capture)
 set(LIB_AIRSTREAM_CAPTURE_SOURCES
 #       ${LIB_AIRSTREAM_CAPTURE_PATH}/../../deps/zf_log/zf_log/zf_log.c
@@ -75,9 +80,14 @@ set(LIB_AIRSTREAM_CAPTURE_SOURCES
         ${LIB_AIRSTREAM_CAPTURE_PATH}/paketisedESPayloadHandler.cpp
         ${LIB_AIRSTREAM_CAPTURE_PATH}/libdvbv5-patch/mpeg_pes.c
         ${LIB_AIRSTREAM_CAPTURE_PATH}/program.cpp
-        ${LIB_AIRSTREAM_CAPTURE_PATH}/stream.cpp
         ${LIB_AIRSTREAM_CAPTURE_PATH}/patHandler.cpp
         ${LIB_AIRSTREAM_CAPTURE_PATH}/pmtHandler.cpp
+        )
+
+set(LIB_AIRSTREAM_TRANSCODE_PATH ${AIRSTREAM_PROJECT_ROOT}/src/transcode)
+set(LIB_AIRSTREAM_TRANSCODE_SOURCES
+#       ${LIB_AIRSTREAM_CAPTURE_PATH}/../../deps/zf_log/zf_log/zf_log.c
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/transcoder.cpp
         )
 
 ###############################################################################
@@ -119,11 +129,28 @@ LINK_DIRECTORIES(
 #                                                                             #
 ###############################################################################
 ADD_LIBRARY(airstreamCapture STATIC ${LIB_AIRSTREAM_CAPTURE_SOURCES})
+ADD_LIBRARY(airstreamTranscode STATIC ${LIB_AIRSTREAM_TRANSCODE_SOURCES})
+ADD_LIBRARY(airstream STATIC ${LIB_AIRSTREAM_SOURCES})
+
 ADD_EXECUTABLE(testApp ${APP_AIRSTREAM_SOURCES})
 
-TARGET_LINK_LIBRARIES(testApp airstreamCapture dvbv5 pthread)
+TARGET_LINK_LIBRARIES(testApp airstreamCapture airstreamTranscode airstream dvbv5 pthread)
+
+SET_TARGET_PROPERTIES(airstream
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY ""
+)
 
 SET_TARGET_PROPERTIES(airstreamCapture
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY ""
+)
+
+SET_TARGET_PROPERTIES(airstreamTranscode
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"

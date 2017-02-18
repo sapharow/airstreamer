@@ -1,11 +1,11 @@
 #pragma once
-#include <capture/stream.h>
+#include <stream.h>
 #include <libdvbv5/pmt.h>
 
 namespace fp {
 	namespace cap {
 
-		class PMTHandler : public fp::cap::Stream {
+		class PMTHandler : public Stream {
 		public:
 			typedef std::function<StreamRef(uint32_t, Stream::Type, bool, uint32_t lang)> CreateStream;
 

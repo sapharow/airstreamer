@@ -19,17 +19,17 @@ namespace fp {
 	/**
 	 * Forward declarations
 	 */
+	DECLARE_STRUCT(Stream);
+
 	namespace cap {
 		DECLARE_CLASS(TSSource);
 		DECLARE_CLASS(FileSource);
 		DECLARE_CLASS(DVBSource);
-		DECLARE_STRUCT(Stream);
 		DECLARE_STRUCT(Program);
 	}
 
 	namespace trans {
-		DECLARE_CLASS(Input);
-		DECLARE_CLASS(Output);
+		DECLARE_CLASS(Transcoder);
 	}
 
 	typedef std::string String;
