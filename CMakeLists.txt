@@ -64,20 +64,20 @@ ADD_DEFINITIONS(-DQT_COMPILING_QSTRING_COMPAT_CPP)
 # Define sources of libPlayer library                                         #
 #                                                                             #
 ###############################################################################
-set(LIB_AIRSTREAM_PATH ${AIRSTREAM_PROJECT_ROOT}/src)
-set(LIB_AIRSTREAM_SOURCES
-#		${LIB_AIRSTREAM_PATH}/../../deps/zf_log/zf_log/zf_log.c
-        ${LIB_AIRSTREAM_PATH}/airStream.cpp
-        ${LIB_AIRSTREAM_PATH}/tsSource.cpp
-        ${LIB_AIRSTREAM_PATH}/fileSource.cpp
-        ${LIB_AIRSTREAM_PATH}/dvbSource.cpp
-        ${LIB_AIRSTREAM_PATH}/paketisedPayloadHandler.cpp
-        ${LIB_AIRSTREAM_PATH}/paketisedESPayloadHandler.cpp
-        ${LIB_AIRSTREAM_PATH}/libdvbv5-patch/mpeg_pes.c
-        ${LIB_AIRSTREAM_PATH}/program.cpp
-        ${LIB_AIRSTREAM_PATH}/stream.cpp
-        ${LIB_AIRSTREAM_PATH}/patHandler.cpp
-        ${LIB_AIRSTREAM_PATH}/pmtHandler.cpp
+set(LIB_AIRSTREAM_CAPTURE_PATH ${AIRSTREAM_PROJECT_ROOT}/src/capture)
+set(LIB_AIRSTREAM_CAPTURE_SOURCES
+#       ${LIB_AIRSTREAM_CAPTURE_PATH}/../../deps/zf_log/zf_log/zf_log.c
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/airStream.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/tsSource.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/fileSource.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/dvbSource.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/paketisedPayloadHandler.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/paketisedESPayloadHandler.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/libdvbv5-patch/mpeg_pes.c
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/program.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/stream.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/patHandler.cpp
+        ${LIB_AIRSTREAM_CAPTURE_PATH}/pmtHandler.cpp
         )
 
 ###############################################################################
@@ -118,12 +118,12 @@ LINK_DIRECTORIES(
 # Setup build process                                                         #
 #                                                                             #
 ###############################################################################
-ADD_LIBRARY(airstream STATIC ${LIB_AIRSTREAM_SOURCES})
+ADD_LIBRARY(airstreamCapture STATIC ${LIB_AIRSTREAM_CAPTURE_SOURCES})
 ADD_EXECUTABLE(testApp ${APP_AIRSTREAM_SOURCES})
 
-TARGET_LINK_LIBRARIES(testApp airstream dvbv5 pthread)
+TARGET_LINK_LIBRARIES(testApp airstreamCapture dvbv5 pthread)
 
-SET_TARGET_PROPERTIES(airstream
+SET_TARGET_PROPERTIES(airstreamCapture
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"

@@ -1,4 +1,4 @@
-#include <dvbSource.h>
+#include <capture/dvbSource.h>
 #include <libdvbv5/dvb-fe.h>
 #include <libdvbv5/dvb-demux.h>
 #include <unistd.h>
@@ -38,7 +38,7 @@ namespace fp {
 		size_t DVBSource::readDataInto(uint8_t* buffer, size_t size) {
 			if (m_DemuxIO != -1) {
 				ssize_t res = read(m_DemuxIO, buffer, size);
-				if (res == -1) {
+				if (res < 1) {
 					throw std::runtime_error("Error reading from demuxer");
 				}
 				return res;

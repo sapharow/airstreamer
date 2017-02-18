@@ -1,4 +1,4 @@
-#include <airStream.h>
+#include <capture/airStream.h>
 #include <libdvbv5/dvb-fe.h>
 #include <libdvbv5/dvb-demux.h>
 #include <libdvbv5/mpeg_pes.h>

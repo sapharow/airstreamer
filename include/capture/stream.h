@@ -36,8 +36,9 @@ namespace fp {
 			 * @param[in] id Program ID
 			 * @param[in] type Stream type
 			 * @param[in] sync If set to true then synchronisation is performed by this stream
+			 * @param[in] lang Language code
 			 */
-			Stream(uint32_t id, Type type, bool sync);
+			Stream(uint32_t id, Type type, bool sync, uint32_t lang);
 			virtual ~Stream() = default;
 
 			/**
@@ -56,6 +57,12 @@ namespace fp {
 			bool sync() const;
 
 			/**
+			 * Stream language as 3-bytes code
+			 * 0 means no language assigned
+			 */
+			uint32_t lang() const;
+
+			/**
 			 * Supply stream with data
 			 * @param[in] data Data to supply
 			 * @param[in] size Size of data
@@ -66,6 +73,7 @@ namespace fp {
 			uint32_t m_ID;
 			Type m_Type;
 			bool m_Sync;
+			uint32_t m_Lang;
 		};
 	}
 }

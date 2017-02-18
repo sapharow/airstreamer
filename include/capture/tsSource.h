@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include <stream.h>
+#include <capture/stream.h>
 
 namespace fp {
 
@@ -43,17 +43,19 @@ namespace fp {
 			 * Called when program is spawned and attached to this source
 			 * Once spawned its streams will continuously receive payload
 			 * @param[in] program Program created
+			 * @return true if this program is required and false otherwise
 			 */
-			virtual void programSpawned(const ProgramRef& program) {}
+			virtual bool programSpawned(const ProgramRef& program) { return true; }
 
 			/**
 			 * Called when source needs to create stream
 			 * @param[in] id Stream ID
 			 * @param[in] type Stream type
 			 * @param[in] sync Set to true if this stream is used for synchronisation
-			 * @return created stream
+			 * @param[in] lang 3-bytes language code
+			 * @return created stream. Can return nullptr if this stream is not required
 			 */
-			virtual StreamRef createStream(uint32_t id, Stream::Type type, bool sync) = 0;
+			virtual StreamRef createStream(uint32_t id, Stream::Type type, bool sync, uint32_t lang) = 0;
 
 			/**
 			 * Read transport stream data into memory buffer

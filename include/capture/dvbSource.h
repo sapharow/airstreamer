@@ -1,5 +1,5 @@
 #pragma once
-#include <tsSource.h>
+#include <capture/tsSource.h>
 #include <libdvbv5/dvb-fe.h>
 
 namespace fp {

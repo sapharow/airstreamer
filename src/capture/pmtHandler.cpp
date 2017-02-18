@@ -1,15 +1,15 @@
 #include "pmtHandler.h"
-#include <tsSource.h>
+#include <capture/tsSource.h>
+#include <capture/program.h>
 #include <libdvbv5/dvb-fe.h>
 #include <libdvbv5/descriptors.h>
-#include <program.h>
 #include <exception>
 
 namespace fp {
 	namespace cap {
 
 		PMTHandler::PMTHandler(uint32_t serviceId, CreateStream cs, SpawnProgram sp)
-		: fp::cap::Stream(0, Type::Other, false)
+		: fp::cap::Stream(0, Type::Other, false, 0)
 		, m_ServiceId(serviceId)
 		, m_CreateStream(cs)
 		, m_SpawnProgram(sp)
@@ -28,7 +28,7 @@ namespace fp {
 					dvb_pmt_stream_foreach(stream, m_PMT) {
 						Type type = Type::Other;
 						uint32_t fourCC = 0;
-						uint8_t language[3] = {'u','n','d'};
+						uint32_t language = 0;
 
 						dvb_desc_foreach(desc, stream) {
 							switch (desc->type) {
@@ -44,12 +44,13 @@ namespace fp {
 									break;
 								case iso639_language_descriptor:
 									if (desc->length >= 3) {
-										memcpy(language, desc->data, 3);
+										memcpy((uint8_t*)&language + 1, desc->data, 3);
 									}
 									break;
 								case video_stream_descriptor:
 									type = Type::Video_H262;
 									break;
+								default: ;
 							}
 						}
 
@@ -76,16 +77,20 @@ namespace fp {
 						}
 
 						if (m_CreateStream) {
-							auto localStream = m_CreateStream(stream->elementary_pid, type, m_PMT->pcr_pid == stream->elementary_pid);
+							auto localStream = m_CreateStream(stream->elementary_pid, type, m_PMT->pcr_pid == stream->elementary_pid, language);
 							if (localStream) {
 								streams.push_back(localStream);
 							}
 						}
 					}
 
-					m_Program = std::make_shared<Program>((uint32_t)m_PMT->header.id, streams);
-					if (m_SpawnProgram) {
-						m_SpawnProgram(m_Program);
+					if (!streams.empty()) {
+						auto program = std::make_shared<Program>((uint32_t)m_PMT->header.id, streams);
+						if (m_SpawnProgram) {
+							if (m_SpawnProgram(program)) {
+								m_Program = program;
+							}
+						}
 					}
 				}
 			}

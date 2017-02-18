@@ -1,5 +1,5 @@
 #pragma once
-#include <stream.h>
+#include <capture/stream.h>
 #include <libdvbv5/pat.h>
 #include <unordered_map>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <stream.h>
+#include <capture/stream.h>
 #include <libdvbv5/pmt.h>
 
 namespace fp {
@@ -7,8 +7,15 @@ namespace fp {
 
 		class PMTHandler : public fp::cap::Stream {
 		public:
-			typedef std::function<StreamRef(uint32_t, Stream::Type, bool)> CreateStream;
-			typedef std::function<void(ProgramRef)> SpawnProgram;
+			typedef std::function<StreamRef(uint32_t, Stream::Type, bool, uint32_t lang)> CreateStream;
+
+			/**
+			 * When program is spawned this handler is called. If true returned, then program is retained
+			 * otherwise it is discarded
+			 * @param[in] program Newly created program (non-null)
+			 * @return true if program shall be retained, false otherwise
+			 */
+			typedef std::function<bool(ProgramRef program)> SpawnProgram;
 
 			/**
 			 * Create PAT handler

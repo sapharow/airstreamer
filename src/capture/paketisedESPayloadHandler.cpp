@@ -1,6 +1,6 @@
 #include "paketisedESPayloadHandler.h"
 #include <libdvbv5/dvb-fe.h>
-#include <stream.h>
+#include <capture/stream.h>
 #include "libdvbv5-patch/mpeg_pes.h"
 
 namespace fp {

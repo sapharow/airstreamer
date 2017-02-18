@@ -6,6 +6,8 @@
 
 namespace fp {
 
+#define nonnull __attribute__((nonnull))
+
 #define DECLARE_CLASS(c) class c; \
 	typedef std::shared_ptr<c> c ## Ref; \
 	typedef std::weak_ptr<c> c ## Weak;

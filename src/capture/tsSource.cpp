@@ -1,4 +1,5 @@
-#include <tsSource.h>
+#include <capture/tsSource.h>
+#include <capture/program.h>
 #include "paketisedPayloadHandler.h"
 #include "paketisedESPayloadHandler.h"
 #include <libdvbv5/dvb-fe.h>
@@ -6,7 +7,6 @@
 #include <libdvbv5/pmt.h>
 #include "patHandler.h"
 #include "pmtHandler.h"
-#include <program.h>
 #include <cassert>
 
 /**
@@ -64,21 +64,29 @@ namespace fp {
 			uint8_t* bufferWritePtr = buffer.data();
 			const uint8_t* bufferEnd = buffer.data() + buffer.size();
 			while (thiz->m_Started) {
-				size_t nBytesRead = thiz->readDataInto(bufferWritePtr, bufferEnd - bufferWritePtr);
+				size_t nBytesRead;
+				try {
+					nBytesRead = thiz->readDataInto(bufferWritePtr, bufferEnd - bufferWritePtr);
+				} catch (std::exception&) {
+					// retry
+					continue;
+				}
 				if (nBytesRead == 0) {
 					// Exit thread
+					printf("EOS reached\n");
 					break;
 				}
 				bufferWritePtr += nBytesRead;
 
-				// Go through whole buffer
+				// Go through received buffer
 				uint8_t* bufferReadPtr;
-				for (bufferReadPtr = buffer.data(); bufferWritePtr - bufferReadPtr >= 188; bufferReadPtr += 188) {
+				for (bufferReadPtr = buffer.data(); bufferWritePtr - bufferReadPtr >= 188; ) {
 					// Buffer contains another TS packet to analyse
 					ssize_t tableSize;
 					if (bufferReadPtr[0] == DVB_MPEG_TS) {
 						tableSize = dvb_mpeg_ts_init(dvb_fe_dummy(), bufferReadPtr, bufferWritePtr - bufferReadPtr, (uint8_t*)tsPacket, &tableSize);
 						if (tableSize <= 188) {
+							printf("packet read\n");
 							if (!pidPayload[tsPacket->pid]) {
 
 								// Create custom programs handler
@@ -90,15 +98,19 @@ namespace fp {
 											// Create PMT handlers for received PIDs
 											if (!pidPayload[service.first]) {
 												auto pmtHandler = std::make_shared<PMTHandler>(service.second, 
-												                                               [&pidPayload, thiz](uint32_t id, Stream::Type type, bool sync){
-												                                               	auto localStream = thiz->createStream(id, type, sync);
-												                                               	if (!pidPayload[id]) {
-												                                               		pidPayload[id] = new PaketisedESPayloadHandler(localStream);
-												                                               	}
-												                                               	return localStream;
+												                                               [thiz](uint32_t id, Stream::Type type, bool sync, uint32_t lang){
+												                                               	return thiz->createStream(id, type, sync, lang);
 												                                               },
-												                                               [thiz](const ProgramRef& program) {
-												                                               	thiz->programSpawned(program);
+												                                               [&pidPayload, thiz](const ProgramRef& program) {
+												                                               	bool bNeedProgram = thiz->programSpawned(program);
+												                                               	if (bNeedProgram) {
+												                                               		for (auto stream : program->streams()) {
+												                                               			if (!pidPayload[stream->id()]) {
+												                                               				pidPayload[stream->id()] = new PaketisedESPayloadHandler(stream);
+												                                               			}
+												                                               		}
+												                                               	}
+												                                               	return bNeedProgram;
 												                                               });
 												pidPayload[service.first] = new PaketisedPayloadHandler(pmtHandler);
 											}
@@ -128,7 +140,11 @@ namespace fp {
 								}
 							}
 						}
-
+						bufferReadPtr += 188;
+					} else {
+						// First byte of packet is not 0x47
+						// Skip to second byte
+						bufferReadPtr++;
 					}
 				}
 

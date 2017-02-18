@@ -1,8 +1,8 @@
-#include <airStream.h>
-#include <dvbSource.h>
-#include <fileSource.h>
-#include <stream.h>
-#include <program.h>
+#include <capture/airStream.h>
+#include <capture/dvbSource.h>
+#include <capture/fileSource.h>
+#include <capture/stream.h>
+#include <capture/program.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0
@@ -10,9 +10,10 @@
 
 class MyStream : public fp::cap::Stream {
 public:
-	MyStream(uint32_t id, Type type, bool sync)
-	: fp::cap::Stream(id, type, sync)
-	{ 
+	MyStream(uint32_t id, Type type, bool sync, uint32_t lang)
+	: fp::cap::Stream(id, type, sync, lang)
+	{
+		// Create stream
 		char buffer[256];
 		memset(buffer, 0, 256);
 		switch (type) {
@@ -44,23 +45,25 @@ public:
 	}
 
 	void supplyData(const uint8_t* data, size_t size, Metadata* metadata) override {
+		// Supply stream data
 		if (m_File) {
 			fwrite(data, 1, size, m_File);
 		}
 	}
 private:
 	FILE* m_File = nullptr;
-
 };
 
-class MySource : public fp::cap::FileSource {
+class MySource : public fp::cap::DVBSource {
 public:
-	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
-	fp::cap::StreamRef createStream(uint32_t id, fp::cap::Stream::Type type, bool sync) override {
-		return std::make_shared<MyStream>(id, type, sync);
+//	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
+	MySource(const fp::String& fname) : fp::cap::DVBSource(0,0,0) {}
+	fp::cap::StreamRef createStream(uint32_t id, fp::cap::Stream::Type type, bool sync, uint32_t lang) override {
+		return std::make_shared<MyStream>(id, type, sync, lang);
 	}	
-	void programSpawned(const fp::cap::ProgramRef& program) {
+	bool programSpawned(const fp::cap::ProgramRef& program) {
 		printf("New program found %u\n", program->id());
+		return true;
 	}
 };
 
