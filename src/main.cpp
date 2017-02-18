@@ -7,15 +7,7 @@
 #include <capture/program.h>
 
 // Transcode
-#include <transcode/transcoder.h>
-
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavfilter/avfiltergraph.h>
-#include <libavfilter/buffersink.h>
-#include <libavfilter/buffersrc.h>
-#include <libavutil/opt.h>
-#include <libavutil/pixdesc.h>
+#include <transcode/softwareTranscoder.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0
@@ -71,9 +63,14 @@ public:
 	MyStream(uint32_t id, Type type, bool sync, uint32_t lang)
 	: fp::Stream(id, type, sync, lang)
 	{
+		static int i = 0;
+		if (i) {
+			return;
+		}
+
 		// Create transcoder
 		m_Output = std::make_shared<MyEncodedStream>(id, type, sync, lang);
-		m_Transcoder = std::make_shared<fp::trans::Transcoder>(m_Output);
+		m_Transcoder = std::make_shared<fp::trans::SoftwareTranscoder>(type, m_Output);
 
 		// Create stream
 		char buffer[256];
@@ -84,6 +81,7 @@ public:
 				break;
 			case Stream::Type::Video_H262:
 				sprintf(buffer, "video_%04x.mp2", id);
+				i++;
 				break;
 			case Stream::Type::Audio_11172_2:
 				sprintf(buffer, "audio_%04x.mp1", id);
@@ -103,12 +101,16 @@ public:
 	}
 
 	~MyStream() override {
-		fclose(m_File);
+		if (m_File) {
+			fclose(m_File);
+		}
 	}
 
 	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		// Supply stream data
-		m_Transcoder->supplyFrame(data, size);
+		if (m_Transcoder) {
+			m_Transcoder->supplyFrame(data, size, metadata);
+		}
 
 		if (m_File) {
 			fwrite(data, 1, size, m_File);

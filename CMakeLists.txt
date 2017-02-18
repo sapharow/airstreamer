@@ -48,8 +48,8 @@ set(AIRSTREAM_PROJECT_ROOT ${CMAKE_CURRENT_LIST_DIR})
 message("Project root folder: " ${AIRSTREAM_PROJECT_ROOT} )
 
 IF(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-#   SET(CMAKE_BUILD_TYPE Debug)
-   SET(CMAKE_BUILD_TYPE RelWithDebInfo)
+   SET(CMAKE_BUILD_TYPE Debug)
+#   SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 ENDIF(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 message("Build type: " ${CMAKE_BUILD_TYPE} )
 
@@ -88,6 +88,7 @@ set(LIB_AIRSTREAM_TRANSCODE_PATH ${AIRSTREAM_PROJECT_ROOT}/src/transcode)
 set(LIB_AIRSTREAM_TRANSCODE_SOURCES
 #       ${LIB_AIRSTREAM_CAPTURE_PATH}/../../deps/zf_log/zf_log/zf_log.c
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/transcoder.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/softwareTranscoder.cpp
         )
 
 ###############################################################################
@@ -119,7 +120,9 @@ INCLUDE_DIRECTORIES(
 		)
 LINK_DIRECTORIES(
 		${AIRSTREAM_PROJECT_ROOT}/deps/deps-bass-library/lib/${LIB_BASS_PATH}
-		${CMAKE_FIND_ROOT_PATH}/lib
+        ${CMAKE_FIND_ROOT_PATH}/lib
+        ${CMAKE_FIND_ROOT_PATH}/local/lib
+        /usr/local/lib
 		)
 
 
@@ -134,7 +137,7 @@ ADD_LIBRARY(airstream STATIC ${LIB_AIRSTREAM_SOURCES})
 
 ADD_EXECUTABLE(testApp ${APP_AIRSTREAM_SOURCES})
 
-TARGET_LINK_LIBRARIES(testApp airstreamCapture airstreamTranscode airstream dvbv5 pthread)
+TARGET_LINK_LIBRARIES(testApp airstreamCapture airstreamTranscode airstream avformat avcodec avfilter swscale avresample avutil x264 dvbv5 pthread z bz2)
 
 SET_TARGET_PROPERTIES(airstream
     PROPERTIES

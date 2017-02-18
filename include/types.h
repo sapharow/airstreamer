@@ -30,6 +30,7 @@ namespace fp {
 
 	namespace trans {
 		DECLARE_CLASS(Transcoder);
+		DECLARE_CLASS(SoftwareTranscoder);
 	}
 
 	typedef std::string String;

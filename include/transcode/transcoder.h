@@ -1,5 +1,6 @@
 #pragma once
 #include <types.h>
+#include <stream.h>
 
 namespace fp {
 	namespace trans {
@@ -13,16 +14,27 @@ namespace fp {
 			/**
 			 * Create transcoder with output
 			 */
-			Transcoder(const StreamRef& output);
+			Transcoder(Stream::Type inputType, const StreamRef& output);
 			virtual ~Transcoder() = default;
 
 			/**
 			 * Supply frame to transcoder
 			 */
-			virtual void supplyFrame(const uint8_t* data, size_t size);
+			virtual void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*);
+
+			/**
+			 * Retrieve assigned output
+			 */
+			const StreamRef& output() const;
+
+			/**
+			 * Retrieve input stream type
+			 */
+			Stream::Type inputType() const;
 
 		private:
 			StreamRef m_Output;
+			Stream::Type m_InputType;
 		};
 
 	}
