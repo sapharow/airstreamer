@@ -1,8 +1,17 @@
-#include <capture/airStream.h>
+// Capture
 #include <capture/dvbSource.h>
 #include <capture/fileSource.h>
 #include <capture/stream.h>
 #include <capture/program.h>
+
+// Transcode
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0

@@ -27,5 +27,10 @@ namespace fp {
 		DECLARE_STRUCT(Program);
 	}
 
+	namespace trans {
+		DECLARE_CLASS(Input);
+		DECLARE_CLASS(Output);
+	}
+
 	typedef std::string String;
 }
