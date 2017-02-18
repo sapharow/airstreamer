@@ -35,7 +35,8 @@ namespace fp {
 								case registration_descriptor:
 									// Format identifier
 									if (desc->length >= 4) {
-										fourCC = *(uint32_t*)desc->data;
+										void* data = desc->data;
+										fourCC = *(reinterpret_cast<uint32_t*>(data));
 									}
 								break;
 								case atsc_ac3_audio_descriptor:

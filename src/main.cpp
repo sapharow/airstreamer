@@ -54,10 +54,10 @@ private:
 	FILE* m_File = nullptr;
 };
 
-class MySource : public fp::cap::DVBSource {
+class MySource : public fp::cap::FileSource {
 public:
-//	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
-	MySource(const fp::String& fname) : fp::cap::DVBSource(0,0,0) {}
+	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
+//	MySource(const fp::String& fname) : fp::cap::DVBSource(0,0,0) {}
 	fp::cap::StreamRef createStream(uint32_t id, fp::cap::Stream::Type type, bool sync, uint32_t lang) override {
 		return std::make_shared<MyStream>(id, type, sync, lang);
 	}	

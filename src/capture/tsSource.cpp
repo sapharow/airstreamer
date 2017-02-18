@@ -86,7 +86,7 @@ namespace fp {
 					if (bufferReadPtr[0] == DVB_MPEG_TS) {
 						tableSize = dvb_mpeg_ts_init(dvb_fe_dummy(), bufferReadPtr, bufferWritePtr - bufferReadPtr, (uint8_t*)tsPacket, &tableSize);
 						if (tableSize <= 188) {
-							printf("packet read\n");
+//							printf("packet read\n");
 							if (!pidPayload[tsPacket->pid]) {
 
 								// Create custom programs handler
