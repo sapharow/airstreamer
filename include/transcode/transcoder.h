@@ -14,11 +14,11 @@ namespace fp {
 			/**
 			 * Create transcoder with output
 			 */
-			Transcoder(Stream::Type inputType, const StreamRef& output);
+			Transcoder(StreamType inputType, const StreamRef& output);
 			virtual ~Transcoder() = default;
 
 			/**
-			 * Supply frame to transcoder
+			 * Supply frame to transcoder in decode order
 			 */
 			virtual void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*);
 
@@ -30,11 +30,16 @@ namespace fp {
 			/**
 			 * Retrieve input stream type
 			 */
-			Stream::Type inputType() const;
+			StreamType inputType() const;
+
+			/**
+			 * When stream is changed, transcoder shall be reset
+			 */
+			virtual void reset() = 0;
 
 		private:
 			StreamRef m_Output;
-			Stream::Type m_InputType;
+			StreamType m_InputType;
 		};
 
 	}

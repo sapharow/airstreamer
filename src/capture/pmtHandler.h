@@ -7,7 +7,7 @@ namespace fp {
 
 		class PMTHandler : public Stream {
 		public:
-			typedef std::function<StreamRef(uint32_t, Stream::Type, bool, uint32_t lang)> CreateStream;
+			typedef std::function<StreamRef(StreamMeta*)> CreateStream;
 
 			/**
 			 * When program is spawned this handler is called. If true returned, then program is retained

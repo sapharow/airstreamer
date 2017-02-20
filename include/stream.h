@@ -2,6 +2,22 @@
 #include <types.h>
 
 namespace fp {
+	enum class StreamType {
+		Video_H261,
+		Video_H262,
+		Video_H264,
+		Audio_11172_2,
+		Audio_13818_2,
+		Audio_AC3,
+		Other
+	};
+
+	struct StreamMeta {
+		uint32_t   id;		// Stream ID
+		StreamType type;	// Stream type
+		bool       sync;	// Syncronisation by this stream
+		virtual ~StreamMeta() = default;
+	};
 
 	/**
 	 * Stream is class which describes elementary stream
@@ -17,24 +33,11 @@ namespace fp {
 			uint64_t* pts;	// Presentation timestamp
 		};
 
-		enum class Type {
-			Video_H261,
-			Video_H262,
-			Video_H264,
-			Audio_11172_2,
-			Audio_13818_2,
-			Audio_AC3,
-			Other
-		};
-
 		/**
 		 * Create Stream class
-		 * @param[in] id Program ID
-		 * @param[in] type Stream type
-		 * @param[in] sync If set to true then synchronisation is performed by this stream
-		 * @param[in] lang Language code
+		 * @param[in] meta Stream meta (nullable)
 		 */
-		Stream(uint32_t id, Type type, bool sync, uint32_t lang);
+		Stream(StreamMeta* meta);
 		virtual ~Stream() = default;
 
 		/**
@@ -45,18 +48,12 @@ namespace fp {
 		/**
 		 * Retrieve stream type
 		 */
-		Type type() const;
+		StreamType type() const;
 
 		/**
 		 * Return true if synchronisation is performed by this stream
 		 */
 		bool sync() const;
-
-		/**
-		 * Stream language as 3-bytes code
-		 * 0 means no language assigned
-		 */
-		uint32_t lang() const;
 
 		/**
 		 * Supply stream with frame data
@@ -66,9 +63,8 @@ namespace fp {
 		virtual void supplyFrame(const uint8_t* data, size_t size, Metadata* = nullptr) = 0;
 
 	private:
-		uint32_t m_ID;
-		Type m_Type;
-		bool m_Sync;
-		uint32_t m_Lang;
+		uint32_t m_ID = 0;
+		StreamType m_Type = StreamType::Other;
+		bool m_Sync = false;
 	};
 }

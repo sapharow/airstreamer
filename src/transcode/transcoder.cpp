@@ -4,7 +4,7 @@
 namespace fp {
 	namespace trans {
 
-		Transcoder::Transcoder(Stream::Type inputType, const StreamRef& output) 
+		Transcoder::Transcoder(StreamType inputType, const StreamRef& output) 
 		: m_Output(output)
 		, m_InputType(inputType)
 		{
@@ -22,7 +22,7 @@ namespace fp {
 			return m_Output;
 		}
 
-		Stream::Type Transcoder::inputType() const {
+		StreamType Transcoder::inputType() const {
 			return m_InputType;
 		}
 	

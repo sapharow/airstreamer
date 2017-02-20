@@ -9,7 +9,7 @@ namespace fp {
 	namespace cap {
 
 		PMTHandler::PMTHandler(uint32_t serviceId, CreateStream cs, SpawnProgram sp)
-		: Stream(0, Type::Other, false, 0)
+		: Stream(nullptr)
 		, m_ServiceId(serviceId)
 		, m_CreateStream(cs)
 		, m_SpawnProgram(sp)
@@ -26,7 +26,7 @@ namespace fp {
 				if (pmtSize != -1) {
 					std::vector<StreamRef> streams;
 					dvb_pmt_stream_foreach(stream, m_PMT) {
-						Type type = Type::Other;
+						StreamType type = StreamType::Other;
 						uint32_t fourCC = 0;
 						uint32_t language = 0;
 
@@ -41,7 +41,7 @@ namespace fp {
 								break;
 								case atsc_ac3_audio_descriptor:
 									// Audio in AC-3 format
-									type = Type::Audio_AC3;
+									type = StreamType::Audio_AC3;
 									break;
 								case iso639_language_descriptor:
 									if (desc->length >= 3) {
@@ -49,7 +49,7 @@ namespace fp {
 									}
 									break;
 								case video_stream_descriptor:
-									type = Type::Video_H262;
+									type = StreamType::Video_H262;
 									break;
 								default: ;
 							}
@@ -58,27 +58,54 @@ namespace fp {
 
 						switch (stream->type) {
 							case stream_video:
-								type = Type::Video_H261;
+								type = StreamType::Video_H261;
 								break;
 							case stream_video_h262:
-								type = Type::Video_H262;
+								type = StreamType::Video_H262;
 								break;
 							case stream_audio:
-								type = Type::Audio_11172_2;
+								type = StreamType::Audio_11172_2;
 								break;
 							case stream_audio_13818_3:
-								type = Type::Audio_13818_2;
+								type = StreamType::Audio_13818_2;
 								break;
 							default:
-								if (type == Type::Other) {
+								if (type == StreamType::Other) {
 									printf("Other 0x%04x\n", stream->type);
-									type = Type::Other;
+									type = StreamType::Other;
 									break;
 								}
 						}
 
 						if (m_CreateStream) {
-							auto localStream = m_CreateStream(stream->elementary_pid, type, m_PMT->pcr_pid == stream->elementary_pid, language);
+							std::shared_ptr<StreamMeta> meta;
+							switch (type) {
+								case StreamType::Video_H261:
+								case StreamType::Video_H262:
+								case StreamType::Video_H264: {
+									auto videoMeta = std::make_shared<VideoStreamMeta>();
+									videoMeta->width = 640; // todo
+									videoMeta->height = 480; // todo
+									meta = videoMeta;
+									break;
+								}
+								case StreamType::Audio_11172_2:
+								case StreamType::Audio_13818_2:
+								case StreamType::Audio_AC3: {
+									auto audioMeta = std::make_shared<AudioStreamMeta>();
+									audioMeta->lang = language;
+									meta = audioMeta;
+									break;
+								}
+								default:
+									meta = std::make_shared<StreamMeta>();
+									break;
+							}
+
+							meta->id = stream->elementary_pid;
+							meta->type = type;
+							meta->sync = m_PMT->pcr_pid == stream->elementary_pid;
+							auto localStream = m_CreateStream(meta.get());
 							if (localStream) {
 								streams.push_back(localStream);
 							}

@@ -5,7 +5,8 @@
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include <stream.h>
+#include <audioStream.h>
+#include <videoStream.h>
 
 namespace fp {
 
@@ -48,14 +49,18 @@ namespace fp {
 			virtual bool programSpawned(const ProgramRef& program) { return true; }
 
 			/**
-			 * Called when source needs to create stream
-			 * @param[in] id Stream ID
-			 * @param[in] type Stream type
-			 * @param[in] sync Set to true if this stream is used for synchronisation
-			 * @param[in] lang 3-bytes language code
+			 * Called when source needs to create audio stream
+			 * @param[in] meta Stream metadata (nonnull)
 			 * @return created stream. Can return nullptr if this stream is not required
 			 */
-			virtual StreamRef createStream(uint32_t id, Stream::Type type, bool sync, uint32_t lang) = 0;
+			virtual AudioStreamRef createAudioStream(AudioStreamMeta* meta) = 0;
+
+			/**
+			 * Called when source needs to create video stream
+			 * @param[in] meta Stream metadata (nonnull)
+			 * @return created stream. Can return nullptr if this stream is not required
+			 */
+			virtual VideoStreamRef createVideoStream(VideoStreamMeta* meta) = 0;
 
 			/**
 			 * Read transport stream data into memory buffer

@@ -20,6 +20,8 @@ namespace fp {
 	 * Forward declarations
 	 */
 	DECLARE_STRUCT(Stream);
+	DECLARE_STRUCT(AudioStream);
+	DECLARE_STRUCT(VideoStream);
 
 	namespace cap {
 		DECLARE_CLASS(TSSource);

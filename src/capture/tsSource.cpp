@@ -98,8 +98,17 @@ namespace fp {
 											// Create PMT handlers for received PIDs
 											if (!pidPayload[service.first]) {
 												auto pmtHandler = std::make_shared<PMTHandler>(service.second, 
-												                                               [thiz](uint32_t id, Stream::Type type, bool sync, uint32_t lang){
-												                                               	return thiz->createStream(id, type, sync, lang);
+												                                               [thiz](StreamMeta* meta)->StreamRef {
+												                                               	auto videoMeta = dynamic_cast<VideoStreamMeta*>(meta);
+												                                               	if (videoMeta) {
+												                                               		return thiz->createVideoStream(videoMeta);
+												                                               	} else {
+													                                               	auto audioMeta = dynamic_cast<AudioStreamMeta*>(meta);
+													                                               	if (audioMeta) {
+													                                               		return thiz->createAudioStream(audioMeta);
+													                                               	}
+												                                               	}
+												                                               	return nullptr;
 												                                               },
 												                                               [&pidPayload, thiz](const ProgramRef& program) {
 												                                               	bool bNeedProgram = thiz->programSpawned(program);

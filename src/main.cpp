@@ -15,29 +15,33 @@
 
 class MyEncodedStream : public fp::Stream {
 public:
-	MyEncodedStream(uint32_t id, Type type, bool sync, uint32_t lang)
-	: fp::Stream(id, type, sync, lang)
+	MyEncodedStream(fp::StreamMeta* meta)
+	: fp::Stream(meta)
 	{
+		uint32_t id = 0;
+		if (meta) {
+			id = meta->id;
+		}
 		// Create stream
 		char buffer[256];
 		memset(buffer, 0, 256);
-		switch (type) {
-			case Stream::Type::Video_H261:
+		switch (meta->type) {
+			case fp::StreamType::Video_H261:
 				sprintf(buffer, "enc_video_%04x.mp1", id);
 				break;
-			case Stream::Type::Video_H262:
+			case fp::StreamType::Video_H262:
 				sprintf(buffer, "enc_video_%04x.mp2", id);
 				break;
-			case Stream::Type::Video_H264:
+			case fp::StreamType::Video_H264:
 				sprintf(buffer, "enc_video_%04x.mp2", id);
 				break;
-			case Stream::Type::Audio_11172_2:
+			case fp::StreamType::Audio_11172_2:
 				sprintf(buffer, "enc_audio_%04x.mp1", id);
 				break;
-			case Stream::Type::Audio_13818_2:
+			case fp::StreamType::Audio_13818_2:
 				sprintf(buffer, "enc_audio_%04x.mp2", id);
 				break;
-			case Stream::Type::Audio_AC3:
+			case fp::StreamType::Audio_AC3:
 				sprintf(buffer, "enc_audio_%04x.ac3", id);
 				break;
 			default:
@@ -58,10 +62,10 @@ private:
 
 };
 
-class MyStream : public fp::Stream {
+class MyVideoStream : public fp::VideoStream {
 public:
-	MyStream(uint32_t id, Type type, bool sync, uint32_t lang)
-	: fp::Stream(id, type, sync, lang)
+	MyVideoStream(fp::VideoStreamMeta* meta)
+	: fp::VideoStream(meta)
 	{
 		static int i = 0;
 		if (i) {
@@ -69,38 +73,45 @@ public:
 		}
 
 		// Create transcoder
-		m_Output = std::make_shared<MyEncodedStream>(id, type, sync, lang);
-		m_Transcoder = std::make_shared<fp::trans::SoftwareTranscoder>(type, m_Output);
+		fp::VideoStreamMeta outputMeta;
+		outputMeta.id = 0;
+		outputMeta.type = fp::StreamType::Video_H264;
+		outputMeta.sync = true;
+		outputMeta.width = width();
+		outputMeta.height = height();
+
+		m_Output = std::make_shared<MyEncodedStream>(&outputMeta);
+		m_Transcoder = std::make_shared<fp::trans::SoftwareVideoTranscoder>(type(), m_Output);
 
 		// Create stream
 		char buffer[256];
 		memset(buffer, 0, 256);
-		switch (type) {
-			case Stream::Type::Video_H261:
-				sprintf(buffer, "video_%04x.mp1", id);
+		switch (type()) {
+			case fp::StreamType::Video_H261:
+				sprintf(buffer, "video_%04x.mp1", id());
 				break;
-			case Stream::Type::Video_H262:
-				sprintf(buffer, "video_%04x.mp2", id);
+			case fp::StreamType::Video_H262:
+				sprintf(buffer, "video_%04x.mp2", id());
 				i++;
 				break;
-			case Stream::Type::Audio_11172_2:
-				sprintf(buffer, "audio_%04x.mp1", id);
+			case fp::StreamType::Audio_11172_2:
+				sprintf(buffer, "audio_%04x.mp1", id());
 				break;
-			case Stream::Type::Audio_13818_2:
-				sprintf(buffer, "audio_%04x.mp2", id);
+			case fp::StreamType::Audio_13818_2:
+				sprintf(buffer, "audio_%04x.mp2", id());
 				break;
-			case Stream::Type::Audio_AC3:
-				sprintf(buffer, "audio_%04x.ac3", id);
+			case fp::StreamType::Audio_AC3:
+				sprintf(buffer, "audio_%04x.ac3", id());
 				break;
 			default:
-				sprintf(buffer, "other_%04x.ts", id);
+				sprintf(buffer, "other_%04x.ts", id());
 			break;
 		}
 
 		m_File = fopen(buffer, "wb");
 	}
 
-	~MyStream() override {
+	~MyVideoStream() override {
 		if (m_File) {
 			fclose(m_File);
 		}
@@ -126,9 +137,16 @@ class MySource : public fp::cap::FileSource {
 public:
 	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
 //	MySource(const fp::String& fname) : fp::cap::DVBSource(0,0,0) {}
-	fp::StreamRef createStream(uint32_t id, fp::Stream::Type type, bool sync, uint32_t lang) override {
-		return std::make_shared<MyStream>(id, type, sync, lang);
-	}	
+
+	fp::AudioStreamRef createAudioStream(fp::AudioStreamMeta* meta) override {
+		// No audio is required now
+		return nullptr;
+	}
+
+	fp::VideoStreamRef createVideoStream(fp::VideoStreamMeta* meta) override {
+		return std::make_shared<MyVideoStream>(meta);
+	}
+
 	bool programSpawned(const fp::cap::ProgramRef& program) {
 		printf("New program found %u\n", program->id());
 		return true;

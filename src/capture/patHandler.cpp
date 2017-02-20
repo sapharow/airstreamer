@@ -5,7 +5,7 @@ namespace fp {
 	namespace cap {
 
 		PATHandler::PATHandler(ReceivedServices receivedServices)
-		: Stream(0, Type::Other, false, 0)
+		: Stream(nullptr)
 		, m_ReceivedServices(receivedServices)
 		{ }
 

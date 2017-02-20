@@ -24,27 +24,30 @@ namespace fp {
 		/**
 		 * Transcoder class
 		 */
-		class SoftwareTranscoder : public Transcoder {
+		class SoftwareVideoTranscoder : public Transcoder {
 		public:
 
 			/**
 			 * Create transcoder with output
 			 */
-			SoftwareTranscoder(Stream::Type inputType, 
-			                   const StreamRef& output);
-			~SoftwareTranscoder() override;
+			SoftwareVideoTranscoder(StreamType inputType, 
+			                   		const StreamRef& output);
+			~SoftwareVideoTranscoder() override;
 
-			/**
-			 * Supply frame to transcoder
-			 */
 			void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*) override;
+			void reset() override;
 
 		private:
 			AVCodecContext* m_AVInputCodecContext = nullptr;
 			AVCodecContext* m_AVOutputCodecContext = nullptr;
 
+			std::vector<AVFrame*> m_DecodedFramePool;
 			AVFrame* m_DecodedFrame;
-			std::vector<uint8_t> m_Buffer;
+			size_t m_DecodedFramePoolSize = 0;
+
+			uint64_t m_ExpectedPTS;
+			size_t findFrameWithPTS(int64_t);
+			void insertFrame();
 		};
 
 	}
