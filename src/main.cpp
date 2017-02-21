@@ -49,7 +49,7 @@ public:
 			break;
 		}
 
-		m_File = fopen(buffer, "wb");
+//		m_File = fopen(buffer, "wb");
 	}
 
 	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
