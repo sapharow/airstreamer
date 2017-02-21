@@ -86,9 +86,12 @@ namespace fp {
 		}
 
 		size_t SoftwareDecoderContext::decodeFrame(const uint8_t* data, size_t size, Stream::Metadata* metadata, const DecodedFrameRef& outFrame) {
+			if (!outFrame) {
+				throw std::invalid_argument("Provided null output frame");
+			}
 			auto sFrame = dynamic_cast<SoftwareDecodedFrame*>(outFrame.get());
 			if (!sFrame) {
-				throw std::runtime_error("Provided incompatible class implementation");
+				throw std::invalid_argument("Provided incompatible class implementation");
 			}
 
 			AVPacket decodePacket;

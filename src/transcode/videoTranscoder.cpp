@@ -79,7 +79,7 @@ namespace fp {
 							for (size_t i=0; i<m_DecodedFramePoolSize; i++) {
 								size_t nBytesEncoded = m_EncoderContext->encodeFrame(m_DecodedFramePool[i], m_EncodedDataBuffer);
 								if (nBytesEncoded) {
-									output()->supplyFrame(m_EncodedDataBuffer.data(), m_EncodedDataBuffer.size());
+									output()->supplyFrame(m_EncodedDataBuffer.data(), nBytesEncoded);
 								}
 							}
 							m_DecodedFramePoolSize = 0;
@@ -98,7 +98,7 @@ namespace fp {
 		
 		void VideoTranscoder::insertFrame() {
 			// Assume m_DecodedFrame[1..m_DecodedFrameCount] are sorted by PTS
-			if (m_DecodedFramePoolSize+1 > MAX_REF_FRAMES) {
+			if (m_DecodedFramePoolSize+1 >= m_DecodedFramePool.size()) {
 				// We can't put more frames in buffer
 				// TODO:
 				printf("We can't put more frames in buffer\n");

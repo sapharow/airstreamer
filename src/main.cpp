@@ -33,7 +33,7 @@ public:
 				sprintf(buffer, "enc_video_%04x.mp2", id);
 				break;
 			case fp::StreamType::Video_H264:
-				sprintf(buffer, "enc_video_%04x.mp2", id);
+				sprintf(buffer, "enc_video_%04x.h264", id);
 				break;
 			case fp::StreamType::Audio_11172_2:
 				sprintf(buffer, "enc_audio_%04x.mp1", id);
@@ -67,11 +67,6 @@ public:
 	MyVideoStream(fp::VideoStreamMeta* meta)
 	: fp::VideoStream(meta)
 	{
-		static int i = 0;
-		if (i) {
-			return;
-		}
-
 		// Create transcoder
 		fp::VideoStreamMeta outputMeta;
 		outputMeta.id = 0;
@@ -93,7 +88,6 @@ public:
 				break;
 			case fp::StreamType::Video_H262:
 				sprintf(buffer, "video_%04x.mp2", id());
-				i++;
 				break;
 			case fp::StreamType::Audio_11172_2:
 				sprintf(buffer, "audio_%04x.mp1", id());
@@ -110,9 +104,15 @@ public:
 		}
 
 		m_File = fopen(buffer, "wb");
+
+		m_StartTime = std::chrono::high_resolution_clock::now();
 	}
 
 	~MyVideoStream() override {
+		auto end = std::chrono::high_resolution_clock::now();
+		auto msPassed = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_StartTime).count();
+		printf("transcode speed = %.2f frames/sec\n", (float)m_NFrames * 1000.f / (float)msPassed);
+
 		if (m_File) {
 			fclose(m_File);
 		}
@@ -123,6 +123,7 @@ public:
 		if (m_Transcoder) {
 			try {
 				m_Transcoder->supplyFrame(data, size, metadata);
+				m_NFrames++;
 			} catch (std::exception& e) {
 				printf("%s\n", e.what());
 			}
@@ -132,10 +133,15 @@ public:
 			fwrite(data, 1, size, m_File);
 		}
 	}
+
+	uint64_t nFrames() const { return m_NFrames; }
+
 private:
 	FILE* m_File = nullptr;
 	fp::trans::TranscoderRef m_Transcoder;
 	fp::VideoStreamRef m_Output;
+	uint64_t m_NFrames = 0;
+	std::chrono::high_resolution_clock::time_point m_StartTime;
 };
 
 class MySource : public fp::cap::FileSource {
@@ -149,6 +155,11 @@ public:
 	}
 
 	fp::VideoStreamRef createVideoStream(fp::VideoStreamMeta* meta) override {
+		static int i = 0;
+		if (i) {
+			return nullptr;
+		}
+		i++;
 		return std::make_shared<MyVideoStream>(meta);
 	}
 
