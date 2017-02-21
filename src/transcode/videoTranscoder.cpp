@@ -6,6 +6,66 @@
 namespace fp {
 	namespace trans {
 
+		uint32_t DecodedFrame::width() {
+			return m_Width;
+		}
+
+		void DecodedFrame::setWidth(uint32_t width) {
+			m_Width = width;
+		}
+
+		uint32_t DecodedFrame::height() {
+			return m_Height;
+		}
+
+		void DecodedFrame::setHeight(uint32_t height) {
+			m_Height = height;
+		}
+
+		uint32_t DecodedFrame::timebaseNum() {
+			return m_TimebaseNum;
+		}
+
+		void DecodedFrame::setTimebaseNum(uint32_t timebaseNum) {
+			m_TimebaseNum = timebaseNum;
+		} 
+
+		uint32_t DecodedFrame::timebaseDen() {
+			return m_TimebaseDen;
+		}
+
+		void DecodedFrame::setTimebaseDen(uint32_t timebaseDen) {
+			m_TimebaseDen = timebaseDen;
+		}
+
+		EncoderContext::EncoderContext(uint32_t width, uint32_t height, uint32_t bitrate, uint32_t timebaseNum, uint32_t timebaseDen) 
+		: m_Width(width)
+		, m_Height(height)
+		, m_Bitrate(bitrate)
+		, m_TimebaseNum(timebaseNum)
+		, m_TimebaseDen(timebaseDen)
+		{ }
+
+		uint32_t EncoderContext::width() {
+			return m_Width;
+		}
+
+		uint32_t EncoderContext::height() {
+			return m_Height;
+		}
+
+		uint32_t EncoderContext::bitrate() {
+			return m_Bitrate;
+		}
+
+		uint32_t EncoderContext::timebaseNum() {
+			return m_TimebaseNum;
+		}
+
+		uint32_t EncoderContext::timebaseDen() {
+			return m_TimebaseDen;
+		}
+
 		VideoTranscoder::VideoTranscoder(StreamType inputType, const VideoStreamRef& output) 
 		: Transcoder(inputType, output)
 		{ }
@@ -45,7 +105,11 @@ namespace fp {
 				const size_t nBytes = m_DecoderContext->decodeFrame(data, size, metadata, m_DecodedFrame);
 				if (nBytes) {
 					if (!m_EncoderContext) {
-						auto encoder = createEncoder(m_DecodedFrame);
+						auto encoder = createEncoder(m_DecodedFrame->width(),
+						                             m_DecodedFrame->height(),
+						                             1024*1024,
+						                             m_DecodedFrame->timebaseNum(),
+						                             m_DecodedFrame->timebaseDen());
 						if (!encoder) {
 							throw std::runtime_error("Can not initialise encoder");
 						}
@@ -87,8 +151,6 @@ namespace fp {
 					} else {
 						insertFrame();
 					}
-				} else {
-					printf("no frame decompressed\n");
 				}
 			} catch (std::exception&) {
 				throw;

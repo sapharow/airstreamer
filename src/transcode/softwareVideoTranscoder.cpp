@@ -85,6 +85,10 @@ namespace fp {
 			}
 		}
 
+		void* SoftwareDecoderContext::rawDecoder() {
+			return m_Decoder;
+		}
+
 		size_t SoftwareDecoderContext::decodeFrame(const uint8_t* data, size_t size, Stream::Metadata* metadata, const DecodedFrameRef& outFrame) {
 			if (!outFrame) {
 				throw std::invalid_argument("Provided null output frame");
@@ -111,13 +115,23 @@ namespace fp {
 			int gotOutput = 0;
 			int nres = avcodec_decode_video2((AVCodecContext*)m_Decoder, (AVFrame*)sFrame->rawFrame(), &gotOutput, &decodePacket);
 			if (nres < 0) {
-				throw std::runtime_error("error decompressing");
+				throw std::runtime_error("error decoding frame");
 			}
 
 			if (nres) {
 				if (gotOutput) {
-					((AVFrame*)sFrame->rawFrame())->pts = ((AVFrame*)sFrame->rawFrame())->pkt_pts;
-					((AVFrame*)sFrame->rawFrame())->pict_type = AV_PICTURE_TYPE_S;
+					// Setup timebase
+					m_TimeBaseNum = ((AVCodecContext*)m_Decoder)->time_base.num;
+					m_TimeBaseDen = ((AVCodecContext*)m_Decoder)->time_base.den;
+
+					if (((AVCodecContext*)m_Decoder)->ticks_per_frame) {
+						m_TimeBaseNum *= ((AVCodecContext*)m_Decoder)->ticks_per_frame;
+					}
+
+					outFrame->setWidth(((AVFrame*)sFrame->rawFrame())->width);
+					outFrame->setHeight(((AVFrame*)sFrame->rawFrame())->height);
+					outFrame->setTimebaseNum(m_TimeBaseNum);
+					outFrame->setTimebaseDen(m_TimeBaseDen);
 					return nres;
 				}
 			}
@@ -127,12 +141,9 @@ namespace fp {
 
 		// SoftwareEncoderContext ///////////////////////////////////////////////////////////////////////////
 
-		SoftwareEncoderContext::SoftwareEncoderContext(const DecodedFrameRef& frame) {
-			auto sFrame = dynamic_cast<SoftwareDecodedFrame*>(frame.get());
-			if (!sFrame) {
-				throw std::runtime_error("Provided incompatible class implementation");
-			}
-
+		SoftwareEncoderContext::SoftwareEncoderContext(uint32_t width, uint32_t height, uint32_t bitrate, uint32_t timebaseNum, uint32_t timebaseDen) 
+		: EncoderContext(width, height, bitrate, timebaseNum, timebaseDen)
+		{
 			avcodec_register_all();
 			av_register_all();
 
@@ -140,15 +151,15 @@ namespace fp {
 			if (h264) {
 				auto encoder = avcodec_alloc_context3(h264);
 				if (encoder) {
-					encoder->width = ((AVFrame*)sFrame->rawFrame())->width;
-					encoder->height = ((AVFrame*)sFrame->rawFrame())->height;
+					encoder->width = width;
+					encoder->height = height;
 					encoder->sample_aspect_ratio = { 1, 1 };
 					encoder->pix_fmt = AV_PIX_FMT_YUV420P;
-					encoder->bit_rate = 1024;
+					encoder->bit_rate = bitrate / 1024;
 					encoder->codec_id = AV_CODEC_ID_H264;
 					encoder->codec_type = AVMEDIA_TYPE_VIDEO;
-					encoder->time_base.num = 1001;
-					encoder->time_base.den = 60000;
+					encoder->time_base.num = timebaseNum;
+					encoder->time_base.den = timebaseDen;
 					encoder->flags |= CODEC_FLAG_CLOSED_GOP;
 
 					auto ret = avcodec_open2(encoder, h264, nullptr);
@@ -179,6 +190,9 @@ namespace fp {
 				throw std::invalid_argument("Frame can not be nullptr");
 			}
 			auto sFrame = dynamic_cast<SoftwareDecodedFrame*>(frame.get());
+			if (!sFrame) {
+				throw std::invalid_argument("Provided incompatible class implementation");
+			}
 
 			AVPacket encodePacket;
 			memset(&encodePacket, 0, sizeof(AVPacket));
@@ -191,6 +205,10 @@ namespace fp {
 
 			encodePacket.data = data.data();
 			encodePacket.size = data.size();
+
+			// Copy PTS data for encoder
+			((AVFrame*)sFrame->rawFrame())->pts = ((AVFrame*)sFrame->rawFrame())->pkt_pts;
+			((AVFrame*)sFrame->rawFrame())->pict_type = AV_PICTURE_TYPE_S;
 
 			int gotOutput;
 			auto ret = avcodec_encode_video2((AVCodecContext*)m_Encoder, &encodePacket, (AVFrame*)sFrame->rawFrame(), &gotOutput);
@@ -225,8 +243,8 @@ namespace fp {
 			return std::make_shared<SoftwareDecoderContext>(inputType());
 		}
 
-		EncoderContextRef SoftwareVideoTranscoder::createEncoder(const DecodedFrameRef& frame) {
-			return std::make_shared<SoftwareEncoderContext>(frame);
+		EncoderContextRef SoftwareVideoTranscoder::createEncoder(uint32_t width, uint32_t height, uint32_t bitrate, uint32_t timebaseNum, uint32_t timebaseDen) {
+			return std::make_shared<SoftwareEncoderContext>(width, height, bitrate, timebaseNum, timebaseDen);
 		}
 
 		DecodedFrameRef SoftwareVideoTranscoder::allocateFrame() {

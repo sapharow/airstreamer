@@ -16,6 +16,40 @@ namespace fp {
 			 * Return true if this frame has earlier presentation time than reference one
 			 */
 			virtual bool operator <(const DecodedFrame& reference) = 0;
+
+			/**
+			 * Frame width
+			 * Set by decoder
+			 */
+			uint32_t width();
+			void setWidth(uint32_t);
+
+			/**
+			 * Frame height
+			 * Set by decoder
+			 */
+			uint32_t height();
+			void setHeight(uint32_t);
+
+			/**
+			 * Timebase number
+			 * Set by decoder
+			 */
+			uint32_t timebaseNum();
+			void setTimebaseNum(uint32_t);
+
+			/**
+			 * Timebase denominator
+			 * Set by decoder
+			 */
+			uint32_t timebaseDen();
+			void setTimebaseDen(uint32_t);
+
+		private:
+			uint32_t m_Width = 0;
+			uint32_t m_Height = 0;
+			uint32_t m_TimebaseNum = 0;
+			uint32_t m_TimebaseDen = 1;
 		};
 
 		class DecoderContext {
@@ -35,7 +69,33 @@ namespace fp {
 
 		class EncoderContext {
 		public:
+			EncoderContext(uint32_t width, uint32_t height, uint32_t bitrate, uint32_t timebaseNum, uint32_t timebaseDen);
 			virtual ~EncoderContext() = default;
+
+			/**
+			 * Video width 
+			 */
+			uint32_t width();
+
+			/**
+			 * Video height
+			 */
+			uint32_t height();
+
+			/**
+			 * Video stream bitrate
+			 */
+			uint32_t bitrate();
+
+			/**
+			 * Timebase number
+			 */
+			uint32_t timebaseNum();
+
+			/**
+			 * Timebase denominator
+			 */
+			uint32_t timebaseDen();
 
 			/**
 			 * Routine for video frame encoding
@@ -44,6 +104,13 @@ namespace fp {
 			 * @return number of bytes allocated. Return zero if no frame produced (delayed frame)
 			 */
 			virtual size_t encodeFrame(const DecodedFrameRef& frame, std::vector<uint8_t>& dest) = 0;
+
+		private:
+			uint32_t m_Width;
+			uint32_t m_Height;
+			uint32_t m_Bitrate;
+			uint32_t m_TimebaseNum;
+			uint32_t m_TimebaseDen;
 		};
 
 		/**
@@ -73,9 +140,14 @@ namespace fp {
 			virtual DecoderContextRef createDecoder() = 0;
 
 			/**
-			 * Create encoder context based on decoded frame
+			 * Create encoder context
+			 * @param[in] width Output image width
+			 * @param[in] height Output image height
+			 * @param[in] bitrate Output bitstream bitrate, bps
+			 * @param[in] timebaseNum Output bitstream timebase number
+			 * @param[in] timebaseDen Output bitstream timebase denominator
 			 */
-			virtual EncoderContextRef createEncoder(const DecodedFrameRef&) = 0;
+			virtual EncoderContextRef createEncoder(uint32_t width, uint32_t height, uint32_t bitrate, uint32_t timebaseNum, uint32_t timebaseDen) = 0;
 
 			/**
 			 * Allocate frame for decoding

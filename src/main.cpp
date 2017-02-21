@@ -69,9 +69,9 @@ public:
 	{
 		// Create transcoder
 		fp::VideoStreamMeta outputMeta;
-		outputMeta.id = 0;
+		outputMeta.id = id();
 		outputMeta.type = fp::StreamType::Video_H264;
-		outputMeta.sync = true;
+		outputMeta.sync = sync();
 		outputMeta.width = width();
 		outputMeta.height = height();
 
@@ -156,10 +156,10 @@ public:
 
 	fp::VideoStreamRef createVideoStream(fp::VideoStreamMeta* meta) override {
 		static int i = 0;
-		if (i) {
+		i++;
+		if (i != 2) {
 			return nullptr;
 		}
-		i++;
 		return std::make_shared<MyVideoStream>(meta);
 	}
 
@@ -172,8 +172,8 @@ public:
 
 int main(int argc, char **argv)
 {
-//	fp::cap::FileSource src("mpt-smart-travels-classical-clip.dvb");
-	MySource src("football.dvb");
+	MySource src("mpt-smart-travels-classical-clip.dvb");
+//	MySource src("football.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
 
 	src.start();
