@@ -59,6 +59,17 @@ set(LIB_AIRSTREAM_PATH ${AIRSTREAM_PROJECT_ROOT}/src)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -fexceptions -Wall -Wno-unused")
 ADD_DEFINITIONS(-DQT_COMPILING_QSTRING_COMPAT_CPP)
 
+
+###############################################################################
+#                                                                             #
+# Add -DRPI to command-line to build for RaspberryPi                          #
+#                                                                             #
+###############################################################################
+IF("${RPI}" STREQUAL "1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRPI -DOMX_SKIP64BIT")
+ENDIF()
+
+
 ###############################################################################
 #                                                                             #
 # Define sources of libPlayer library                                         #
@@ -92,6 +103,7 @@ set(LIB_AIRSTREAM_TRANSCODE_SOURCES
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/transcoder.cpp
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/videoTranscoder.cpp
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/softwareVideoTranscoder.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/coreIVVideoTranscoder.cpp
         )
 
 ###############################################################################
@@ -119,8 +131,11 @@ INCLUDE_DIRECTORIES(
 		${AIRSTREAM_PROJECT_ROOT}/deps/deps-ctb-library/include
 		${AIRSTREAM_PROJECT_ROOT}/deps/libVisualNodes/include
 		${AIRSTREAM_PROJECT_ROOT}/deps/poco/include
-		${AIRSTREAM_PROJECT_ROOT}/deps/zf_log
+        ${AIRSTREAM_PROJECT_ROOT}/deps/zf_log
+        ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/include
+        ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/src/hello_pi/libs/ilclient
 		)
+
 LINK_DIRECTORIES(
 		${AIRSTREAM_PROJECT_ROOT}/deps/deps-bass-library/lib/${LIB_BASS_PATH}
         ${CMAKE_FIND_ROOT_PATH}/lib
