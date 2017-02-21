@@ -18,6 +18,11 @@ namespace fp {
 			virtual ~Transcoder() = default;
 
 			/**
+			 * Initialise transcoder
+			 */
+			virtual void init() = 0;
+
+			/**
 			 * Supply frame to transcoder in decode order
 			 */
 			virtual void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*);

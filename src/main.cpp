@@ -1,5 +1,5 @@
 // Common
-#include <stream.h>
+#include <videoStream.h>
 
 // Capture
 #include <capture/dvbSource.h>
@@ -7,16 +7,16 @@
 #include <capture/program.h>
 
 // Transcode
-#include <transcode/softwareTranscoder.h>
+#include <transcode/softwareVideoTranscoder.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0
 #define DVB_DEMUX     0
 
-class MyEncodedStream : public fp::Stream {
+class MyEncodedStream : public fp::VideoStream {
 public:
-	MyEncodedStream(fp::StreamMeta* meta)
-	: fp::Stream(meta)
+	MyEncodedStream(fp::VideoStreamMeta* meta)
+	: fp::VideoStream(meta)
 	{
 		uint32_t id = 0;
 		if (meta) {
@@ -82,6 +82,7 @@ public:
 
 		m_Output = std::make_shared<MyEncodedStream>(&outputMeta);
 		m_Transcoder = std::make_shared<fp::trans::SoftwareVideoTranscoder>(type(), m_Output);
+		m_Transcoder->init();
 
 		// Create stream
 		char buffer[256];
@@ -120,7 +121,11 @@ public:
 	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		// Supply stream data
 		if (m_Transcoder) {
-			m_Transcoder->supplyFrame(data, size, metadata);
+			try {
+				m_Transcoder->supplyFrame(data, size, metadata);
+			} catch (std::exception& e) {
+				printf("%s\n", e.what());
+			}
 		}
 
 		if (m_File) {
@@ -130,7 +135,7 @@ public:
 private:
 	FILE* m_File = nullptr;
 	fp::trans::TranscoderRef m_Transcoder;
-	fp::StreamRef m_Output;
+	fp::VideoStreamRef m_Output;
 };
 
 class MySource : public fp::cap::FileSource {

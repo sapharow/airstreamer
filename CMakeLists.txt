@@ -90,7 +90,8 @@ set(LIB_AIRSTREAM_TRANSCODE_PATH ${AIRSTREAM_PROJECT_ROOT}/src/transcode)
 set(LIB_AIRSTREAM_TRANSCODE_SOURCES
 #       ${LIB_AIRSTREAM_CAPTURE_PATH}/../../deps/zf_log/zf_log/zf_log.c
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/transcoder.cpp
-        ${LIB_AIRSTREAM_TRANSCODE_PATH}/softwareTranscoder.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/videoTranscoder.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/softwareVideoTranscoder.cpp
         )
 
 ###############################################################################

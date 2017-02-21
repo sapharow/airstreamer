@@ -84,8 +84,8 @@ namespace fp {
 								case StreamType::Video_H262:
 								case StreamType::Video_H264: {
 									auto videoMeta = std::make_shared<VideoStreamMeta>();
-									videoMeta->width = 640; // todo
-									videoMeta->height = 480; // todo
+									videoMeta->width = 0; // unknown at the moment
+									videoMeta->height = 0; // unknown at the moment
 									meta = videoMeta;
 									break;
 								}
