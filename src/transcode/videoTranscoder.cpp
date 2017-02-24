@@ -70,26 +70,30 @@ namespace fp {
 		: Transcoder(inputType, output)
 		{ }
 
-		void VideoTranscoder::init() {
-			auto decoderContext = createDecoder();
-			if (!decoderContext) {
-				throw std::runtime_error("Initialisation failed: Error creating decoder context");
+		VideoTranscoder::~VideoTranscoder() {
+			m_DecodedFramePool.clear();
+			m_DecodedFrame = nullptr;
+			m_DecoderContext = nullptr;
+			m_EncoderContext = nullptr;
+		}
+
+		bool VideoTranscoder::init() {
+			m_DecoderContext = createDecoder();
+			if (!m_DecoderContext) {
+				return false;
+//				throw std::runtime_error("Initialisation failed: Error creating decoder context");
 			}
-			m_DecoderContext = decoderContext;
 
 			// Allocate frames
 			for (size_t i=0; i<MAX_REF_FRAMES; i++) {
 				auto frame = allocateFrame();
-				if (!frame) {
-					throw std::runtime_error("Initialisation failed: Error allocating decoder frames");
+				if (frame) {
+					m_DecodedFramePool.push_back(frame);
 				}
-				m_DecodedFramePool.push_back(frame);
 			}
-			auto frame = allocateFrame();
-			if (!frame) {
-				throw std::runtime_error("Initialisation failed: Error allocating decoder frames");
-			}
-			m_DecodedFrame = frame;
+			m_DecodedFrame = allocateFrame();
+
+			return true;
 		}
 
 		void VideoTranscoder::reset() {
@@ -98,64 +102,59 @@ namespace fp {
 
 		void VideoTranscoder::supplyFrame(const uint8_t* data, size_t size, Stream::Metadata* metadata) {
 			if (!m_DecoderContext) {
-				throw std::runtime_error("Transcoder is not initialised");
+				return;
 			}
 
-			try {
-				const size_t nBytes = m_DecoderContext->decodeFrame(data, size, metadata, m_DecodedFrame);
-				if (nBytes) {
+			const size_t nBytes = m_DecoderContext->decodeFrame(data, size, metadata, m_DecodedFrame);
+			if (nBytes) {
+				if (!m_EncoderContext) {
+					auto encoder = createEncoder(m_DecodedFrame->width(),
+					                             m_DecodedFrame->height(),
+					                             1024*1024,
+					                             m_DecodedFrame->timebaseNum(),
+					                             m_DecodedFrame->timebaseDen());
+					m_EncoderContext = encoder;
 					if (!m_EncoderContext) {
-						auto encoder = createEncoder(m_DecodedFrame->width(),
-						                             m_DecodedFrame->height(),
-						                             1024*1024,
-						                             m_DecodedFrame->timebaseNum(),
-						                             m_DecodedFrame->timebaseDen());
-						if (!encoder) {
-							throw std::runtime_error("Can not initialise encoder");
-						}
-						m_EncoderContext = encoder;
+						return;
 					}
+				}
 
-					// Determine if PTS/DTS
-					uint64_t pts = 0;
-					uint64_t dts = 0;
-					if (metadata) {
-						// Expected PTS == DTS
-						if (metadata->pts) {
-							pts = *metadata->pts;
-							if (metadata->dts) {
-								dts = *metadata->dts;
-							} else {
-								dts = *metadata->pts;
-							}
+				// Determine if PTS/DTS
+				uint64_t pts = 0;
+				uint64_t dts = 0;
+				if (metadata) {
+					// Expected PTS == DTS
+					if (metadata->pts) {
+						pts = *metadata->pts;
+						if (metadata->dts) {
+							dts = *metadata->dts;
 						} else {
-							throw std::runtime_error("No PTS/DTS provided");
+							dts = *metadata->pts;
 						}
 					} else {
 						throw std::runtime_error("No PTS/DTS provided");
 					}
-
-					// Shuffle DTS/PTS
-					if (pts == dts) {
-						// Flush decoded buffer
-						insertFrame();
-						if (m_DecodedFramePoolSize) {
-							for (size_t i=0; i<m_DecodedFramePoolSize; i++) {
-								size_t nBytesEncoded = m_EncoderContext->encodeFrame(m_DecodedFramePool[i], m_EncodedDataBuffer);
-								if (nBytesEncoded) {
-									output()->supplyFrame(m_EncodedDataBuffer.data(), nBytesEncoded);
-								}
-							}
-							m_DecodedFramePoolSize = 0;
-						}
-					} else {
-						insertFrame();
-					}
+				} else {
+					throw std::runtime_error("No PTS/DTS provided");
 				}
-			} catch (std::exception&) {
-				throw;
-			}
 
+				// Shuffle DTS/PTS
+				if (pts == dts) {
+					// Flush decoded buffer
+					insertFrame();
+					if (m_DecodedFramePoolSize) {
+						for (size_t i=0; i<m_DecodedFramePoolSize; i++) {
+							size_t nBytesEncoded = m_EncoderContext->encodeFrame(m_DecodedFramePool[i], m_EncodedDataBuffer);
+							if (nBytesEncoded) {
+								output()->supplyFrame(m_EncodedDataBuffer.data(), nBytesEncoded);
+							}
+						}
+						m_DecodedFramePoolSize = 0;
+					}
+				} else {
+					insertFrame();
+				}
+			}
 		}
 		
 		void VideoTranscoder::insertFrame() {

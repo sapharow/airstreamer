@@ -8,6 +8,7 @@
 
 // Transcode
 #include <transcode/softwareVideoTranscoder.h>
+#include <transcode/coreIVVideoTranscoder.h>
 
 #define DVB_ADAPTER   0
 #define DVB_FRONTEND  0
@@ -76,8 +77,14 @@ public:
 		outputMeta.height = height();
 
 		m_Output = std::make_shared<MyEncodedStream>(&outputMeta);
+#ifdef RPI
+		m_Transcoder = std::make_shared<fp::trans::CoreIVVideoTranscoder>(type(), m_Output);
+#else
 		m_Transcoder = std::make_shared<fp::trans::SoftwareVideoTranscoder>(type(), m_Output);
-		m_Transcoder->init();
+#endif
+		if (!m_Transcoder->init()) {
+			printf("error\n");
+		}
 
 		// Create stream
 		char buffer[256];
@@ -121,12 +128,8 @@ public:
 	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		// Supply stream data
 		if (m_Transcoder) {
-			try {
-				m_Transcoder->supplyFrame(data, size, metadata);
-				m_NFrames++;
-			} catch (std::exception& e) {
-				printf("%s\n", e.what());
-			}
+			m_Transcoder->supplyFrame(data, size, metadata);
+			m_NFrames++;
 		}
 
 		if (m_File) {
@@ -163,7 +166,7 @@ public:
 		return std::make_shared<MyVideoStream>(meta);
 	}
 
-	bool programSpawned(const fp::cap::ProgramRef& program) {
+	bool programSpawned(const fp::cap::ProgramRef& program) override {
 		printf("New program found %u\n", program->id());
 		return true;
 	}

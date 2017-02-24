@@ -56,7 +56,7 @@ message("Build type: " ${CMAKE_BUILD_TYPE} )
 # Set custom path variables
 set(AIRSTREAM_PROJECT_ROOT ${CMAKE_CURRENT_LIST_DIR})
 set(LIB_AIRSTREAM_PATH ${AIRSTREAM_PROJECT_ROOT}/src)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -fexceptions -Wall -Wno-unused")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fPIC -fexceptions -Wall -Wno-unused")
 ADD_DEFINITIONS(-DQT_COMPILING_QSTRING_COMPAT_CPP)
 
 
@@ -66,7 +66,9 @@ ADD_DEFINITIONS(-DQT_COMPILING_QSTRING_COMPAT_CPP)
 #                                                                             #
 ###############################################################################
 IF("${RPI}" STREQUAL "1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRPI -DOMX_SKIP64BIT")
+  message("Building for hardware de/encoding on RaspberryPi")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DRPI -DOMX -DOMX_SKIP64BIT -DUSE_EXTERNAL_OMX -DUSE_EXTERNAL_LIBBCM_HOST -DUSE_VCHIQ_ARM")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRPI -DOMX -DOMX_SKIP64BIT -DUSE_EXTERNAL_OMX -DUSE_EXTERNAL_LIBBCM_HOST -DUSE_VCHIQ_ARM -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8")
 ENDIF()
 
 
@@ -103,8 +105,21 @@ set(LIB_AIRSTREAM_TRANSCODE_SOURCES
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/transcoder.cpp
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/videoTranscoder.cpp
         ${LIB_AIRSTREAM_TRANSCODE_PATH}/softwareVideoTranscoder.cpp
-        ${LIB_AIRSTREAM_TRANSCODE_PATH}/coreIVVideoTranscoder.cpp
         )
+
+IF("${RPI}" STREQUAL "1")
+set(LIB_AIRSTREAM_COREIV_TRANSCODE_PATH ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/src/hello_pi/libs/ilclient)
+set(LIB_AIRSTREAM_COREIV_TRANSCODE_SOURCES
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/coreIVVideoTranscoder.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/openmax/buffer.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/openmax/client.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/openmax/component.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/openmax/components.cpp
+        ${LIB_AIRSTREAM_TRANSCODE_PATH}/openmax/tunnel.cpp
+        ${LIB_AIRSTREAM_COREIV_TRANSCODE_PATH}/ilclient.c
+        ${LIB_AIRSTREAM_COREIV_TRANSCODE_PATH}/ilcore.c
+        )
+ENDIF()
 
 ###############################################################################
 #                                                                             #
@@ -122,6 +137,7 @@ set(APP_AIRSTREAM_SOURCES
 #                                                                             #
 ###############################################################################
 INCLUDE_DIRECTORIES(
+        ${INCLUDE_DIRECTORIES}
 		/usr/include/qt5
 		${CMAKE_FIND_ROOT_PATH}/include/qt5
 		${AIRSTREAM_PROJECT_ROOT}/lib/QtWidgets.framework/Headers
@@ -133,15 +149,27 @@ INCLUDE_DIRECTORIES(
 		${AIRSTREAM_PROJECT_ROOT}/deps/poco/include
         ${AIRSTREAM_PROJECT_ROOT}/deps/zf_log
         ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/include
-        ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/src/hello_pi/libs/ilclient
 		)
 
 LINK_DIRECTORIES(
+        ${LINK_DIRECTORIES}
 		${AIRSTREAM_PROJECT_ROOT}/deps/deps-bass-library/lib/${LIB_BASS_PATH}
         ${CMAKE_FIND_ROOT_PATH}/lib
         ${CMAKE_FIND_ROOT_PATH}/local/lib
         /usr/local/lib
 		)
+
+
+IF("${RPI}" STREQUAL "1")
+INCLUDE_DIRECTORIES(
+        ${INCLUDE_DIRECTORIES}
+        ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/src/hello_pi/libs/ilclient
+        )
+LINK_DIRECTORIES(
+        ${LINK_DIRECTORIES}
+        ${AIRSTREAM_PROJECT_ROOT}/deps/rpi/opt/vc/lib
+        )
+ENDIF()
 
 
 ###############################################################################
@@ -153,7 +181,42 @@ ADD_LIBRARY(airstreamCapture STATIC ${LIB_AIRSTREAM_CAPTURE_SOURCES})
 ADD_LIBRARY(airstreamTranscode STATIC ${LIB_AIRSTREAM_TRANSCODE_SOURCES})
 ADD_LIBRARY(airstream STATIC ${LIB_AIRSTREAM_SOURCES})
 
+IF("${RPI}" STREQUAL "1")
+ADD_LIBRARY(airstreamCoreIVTranscode STATIC ${LIB_AIRSTREAM_COREIV_TRANSCODE_SOURCES})
+ENDIF()
+
 ADD_EXECUTABLE(testApp ${APP_AIRSTREAM_SOURCES})
+
+TARGET_LINK_LIBRARIES(
+    testApp
+    ${TARGET_LINK_LIBRARIES}
+    airstreamCapture 
+    airstreamTranscode 
+    airstream 
+    avformat 
+    avcodec 
+    avfilter 
+    swscale 
+    avresample 
+    avutil 
+    x264 
+    dvbv5 
+    pthread 
+    z 
+    bz2
+    )
+
+IF("${RPI}" STREQUAL "1")
+TARGET_LINK_LIBRARIES(
+    testApp
+    ${TARGET_LINK_LIBRARIES}
+    airstreamCoreIVTranscode
+    openmaxil
+    vchostif
+    bcm_host
+    vcos
+    )
+ENDIF()
 
 TARGET_LINK_LIBRARIES(testApp airstreamCapture airstreamTranscode airstream avformat avcodec avfilter swscale avresample avutil x264 dvbv5 pthread z bz2)
 

@@ -20,7 +20,7 @@ namespace fp {
 			/**
 			 * Initialise transcoder
 			 */
-			virtual void init() = 0;
+			virtual bool init() = 0;
 
 			/**
 			 * Supply frame to transcoder in decode order

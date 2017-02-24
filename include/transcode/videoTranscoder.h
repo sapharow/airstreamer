@@ -123,13 +123,10 @@ namespace fp {
 			 * Create transcoder with output
 			 */
 			VideoTranscoder(StreamType inputType, const VideoStreamRef& output);
-
-			/**
-			 * Initialise transcoder
-			 */
-			void init();
+			~VideoTranscoder() override;
 
 			// Overrides
+			bool init() override;
 			void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*) override;
 			void reset() override;
 

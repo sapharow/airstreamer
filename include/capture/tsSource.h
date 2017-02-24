@@ -20,7 +20,6 @@ namespace fp {
 		 */
 		class TSSource {
 		public:
-			TSSource();
 			virtual ~TSSource();
 
 			/**

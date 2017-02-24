@@ -37,7 +37,6 @@ namespace fp {
 								metadataPtr = &metadata;
 							}
 
-							if (m_PESTable->optional)
 							stream->supplyFrame(data() + pesSize, 
 							                   	nBytesToSupply,
 							                   	metadataPtr);

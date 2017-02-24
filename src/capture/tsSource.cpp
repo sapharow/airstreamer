@@ -17,9 +17,6 @@
 namespace fp {
 	namespace cap {
 
-		TSSource::TSSource() 
-		{ }
-
 		TSSource::~TSSource() {
 			std::lock_guard<std::recursive_mutex> lock(m_Mutex);
 			if (m_Started) {
@@ -63,6 +60,8 @@ namespace fp {
 			
 			uint8_t* bufferWritePtr = buffer.data();
 			const uint8_t* bufferEnd = buffer.data() + buffer.size();
+			try {
+
 			while (thiz->m_Started) {
 				size_t nBytesRead;
 				try {
@@ -100,14 +99,14 @@ namespace fp {
 												auto pmtHandler = std::make_shared<PMTHandler>(service.second, 
 												                                               [thiz](StreamMeta* meta)->StreamRef {
 												                                               	auto videoMeta = dynamic_cast<VideoStreamMeta*>(meta);
-												                                               	if (videoMeta) {
-												                                               		return thiz->createVideoStream(videoMeta);
-												                                               	} else {
-													                                               	auto audioMeta = dynamic_cast<AudioStreamMeta*>(meta);
-													                                               	if (audioMeta) {
-													                                               		return thiz->createAudioStream(audioMeta);
-													                                               	}
-												                                               	}
+																								if (videoMeta) {
+																									return thiz->createVideoStream(videoMeta);
+																								} else {
+																									auto audioMeta = dynamic_cast<AudioStreamMeta*>(meta);
+																									if (audioMeta) {
+																										return thiz->createAudioStream(audioMeta);
+																									}
+																								}
 												                                               	return nullptr;
 												                                               },
 												                                               [&pidPayload, thiz](const ProgramRef& program) {
@@ -166,6 +165,10 @@ namespace fp {
 				}
 				bufferReadPtr = buffer.data();
 			}
+			} catch (std::exception& e) {
+				printf("uncaught exception %s\n", e.what());
+			}
+
 			thiz->m_ThreadFinished = true;
 
 			for (size_t i=0; i<pidPayload.size(); i++) {

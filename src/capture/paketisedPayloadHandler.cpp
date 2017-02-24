@@ -27,7 +27,12 @@ namespace fp {
 		void PaketisedPayloadHandler::reset() {
 			// Determine if content is PES
 			if (m_Stream) {
-				supplyStream(m_Stream);
+				try {
+					supplyStream(m_Stream);
+				} catch (std::exception& e) {
+					// Stream won't accept data
+					printf("Stream won't accept data (%s)\n", e.what());
+				}
 			}
 
 			m_DataSize = 0;

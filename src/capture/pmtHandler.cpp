@@ -105,9 +105,13 @@ namespace fp {
 							meta->id = stream->elementary_pid;
 							meta->type = type;
 							meta->sync = m_PMT->pcr_pid == stream->elementary_pid;
-							auto localStream = m_CreateStream(meta.get());
-							if (localStream) {
-								streams.push_back(localStream);
+							try {
+								auto localStream = m_CreateStream(meta.get());
+								if (localStream) {
+									streams.push_back(localStream);
+								}
+							} catch (std::exception& e) {
+								printf("Can not create stream (%s)\n", e.what());
 							}
 						}
 					}
