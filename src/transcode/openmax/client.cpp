@@ -3,15 +3,30 @@
 
 namespace fp {
 	namespace omx {
+
+		struct OpenMAX {
+			OpenMAX() {
+				printf("Initialising BCM host\n");
+				bcm_host_init();
+				printf("Initialising OpenMAX IL host...");
+				auto omxResult = OMX_Init();
+				if (omxResult != OMX_ErrorNone) {
+					bcm_host_deinit();
+					printf("Can not initialise OpenMAX IL (%x)\n", omxResult);
+					throw std::runtime_error("Can not initialise OpenMAX IL");
+				}
+				printf("Ok\n");
+			}
+
+			~OpenMAX() {
+				OMX_Deinit();
+				bcm_host_deinit();
+			}
+		};
+
+		static OpenMAX g_OpenMAX;
 		
 		Client::Client() {
-			bcm_host_init();
-			auto omxResult = OMX_Init();
-			if (omxResult != OMX_ErrorNone) {
-				bcm_host_deinit();
-				printf("Can not initialise OpenMAX IL (%x)\n", omxResult);
-				throw std::runtime_error("Can not initialise OpenMAX IL");
-			}
 			m_Client = ilclient_init();
 			if (!m_Client) {
 				OMX_Deinit();
@@ -41,8 +56,6 @@ namespace fp {
 				ilclient_destroy(m_Client);
 				m_Client = nullptr;
 			}
-			OMX_Deinit();
-			bcm_host_deinit();
 		}
 
 		ComponentRef Client::createDecoderComponent(bool enableInputBuffers, bool enableOutputBuffers) {

@@ -268,12 +268,10 @@ namespace fp {
 				/**
 				 * Setup resize
 				 */
-				/*
-				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
-				m_Resize->getParameter(OMX_IndexParamPortDefinition, &resize);
-				resize.bPreserveAspectRatio = OMX_TRUE;
-				m_Resize->setParameter(OMX_IndexParamPortDefinition, &resize);
-				*/
+//				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
+//				m_Resize->getParameter(OMX_IndexParamPortDefinition, &resize);
+//				resize.bPreserveAspectRatio = OMX_TRUE;
+//				m_Resize->setParameter(OMX_IndexParamPortDefinition, &resize);
 
 				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, def, 61);
 				m_Resize->getParameter(OMX_IndexParamPortDefinition, &def);
@@ -283,17 +281,6 @@ namespace fp {
 				def.format.image.nStride /= 2;
 				def.format.image.nSliceHeight /= 2;
 				m_Resize->setParameter(OMX_IndexParamPortDefinition, &def);
-
-//				m_Resize->setParameter(OMX_IndexParamPortDefinition, &def);
-//				printPortDefinitionType(&def);
-//				m_Resize->getParameter(OMX_IndexParamPortDefinition, &def);
-//				printPortDefinitionType(&def);
-/*
-				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
-				resize.bPreserveAspectRatio = OMX_FALSE;
-				resize.bAllowUpscaling = OMX_FALSE;
-				m_Resize->setParameter(OMX_IndexParamResize, &resize);
-				*/
 			}
 		}
 
@@ -312,13 +299,39 @@ namespace fp {
 		void CoreIVVideoTranscoder::onFillBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
 			if (buf) {
 				if (buf->nFilledLen) {
+					printf("Frame: %li\n", (((uint64_t)buf->nTimeStamp.nHighPart) << 32) | buf->nTimeStamp.nLowPart);
+					if (buf->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
+						printf("\tSPS/PPS\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_SYNCFRAME) {
+						printf("\tI-Frame\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_DATACORRUPT) {
+						printf("\tCorrupted data\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_EOS) {
+						printf("\tEOS\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_STARTTIME) {
+						printf("\tStart time\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_DECODEONLY) {
+						printf("\tDecode only\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_ENDOFFRAME) {
+						printf("\tEnd of frame\n");
+					}
+					if (buf->nFlags & OMX_BUFFERFLAG_EXTRADATA) {
+						printf("\tExtra data\n");
+					}
 					output()->supplyFrame(buf->pBuffer, buf->nFilledLen);
 					buf->nFilledLen = 0;
 				}
 			}
 		}
 
-		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) {
+		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
+			printf("Sent frame: %li\n", (((uint64_t)buf->nTimeStamp.nHighPart) << 32) | buf->nTimeStamp.nLowPart);
 		}
 
 		bool CoreIVVideoTranscoder::init() {
@@ -360,7 +373,7 @@ namespace fp {
 			return true;
 		}
 
-		void CoreIVVideoTranscoder::supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*) {
+		void CoreIVVideoTranscoder::supplyFrame(const uint8_t* data, size_t size, Stream::Metadata* metadata) {
 			if (!m_Decoder) {
 				throw std::runtime_error("Decoder is not initialised");
 			}
@@ -467,6 +480,11 @@ namespace fp {
 					buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
 				} else {
 					buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+				}
+				if (metadata && metadata->pts) {
+					auto pts = *metadata->pts;
+					buf->nTimeStamp.nHighPart = pts >> 32;
+					buf->nTimeStamp.nLowPart = pts & 0xffffffff;
 				}
 
 				m_Decoder->emptyBuffer(buf);
