@@ -17,7 +17,7 @@ namespace fp {
 			 * Create file source
 			 * @param[in] fileName File source name
 			 */
-			FileSource(const String& fileName);
+			FileSource(const String& fileName, bool preload);
 			~FileSource() override;
 
 		protected:
@@ -28,6 +28,10 @@ namespace fp {
 			String m_FileName;
 			FILE* m_File;
 			size_t m_FileSize;
+
+			std::vector<uint8_t> m_Content;
+			size_t m_Offset = 0;
+			bool m_Preload;
 		};
 
 	}

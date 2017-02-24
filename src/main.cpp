@@ -50,14 +50,14 @@ public:
 			break;
 		}
 
-//		m_File = fopen(buffer, "wb");
+		m_File = fopen(buffer, "wb");
 	}
 
 	void supplyFrame(const uint8_t* data, size_t size, Metadata* metadata) override {
 		if (m_File) {
 			fwrite(data, 1, size, m_File);
 		}
-		}
+	}
 private:
 	FILE* m_File = nullptr;
 
@@ -149,7 +149,7 @@ private:
 
 class MySource : public fp::cap::FileSource {
 public:
-	MySource(const fp::String& fname) : fp::cap::FileSource(fname) {}
+	MySource(const fp::String& fname) : fp::cap::FileSource(fname, true) {}
 //	MySource(const fp::String& fname) : fp::cap::DVBSource(0,0,0) {}
 
 	fp::AudioStreamRef createAudioStream(fp::AudioStreamMeta* meta) override {
@@ -175,8 +175,8 @@ public:
 
 int main(int argc, char **argv)
 {
-	MySource src("mpt-smart-travels-classical-clip.dvb");
-//	MySource src("football.dvb");
+//	MySource src("mpt-smart-travels-classical-clip.dvb");
+	MySource src("football.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
 
 	src.start();

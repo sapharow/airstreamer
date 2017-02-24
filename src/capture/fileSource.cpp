@@ -1,11 +1,13 @@
 #include <capture/fileSource.h>
 #include <vector>
+#include <memory.h>
 
 namespace fp {
 	namespace cap {
 
-		FileSource::FileSource(const String& fileName) 
+		FileSource::FileSource(const String& fileName, bool preload) 
 		: m_FileName(fileName)
+		, m_Preload(preload)
 		{
 		}
 
@@ -17,14 +19,24 @@ namespace fp {
 		}
 
 		size_t FileSource::readDataInto(uint8_t* buffer, size_t size) {
-			if (ferror(m_File)) {
-				throw std::runtime_error("Error reading from file");
-			}
-			if (feof(m_File)) {
-				return 0;
+			if (m_File) {
+				if (ferror(m_File)) {
+					throw std::runtime_error("Error reading from file");
+				}
+				if (!feof(m_File)) {
+					return fread(buffer, 1, (size / 188) * 188, m_File);
+				}
 			} else {
-				return fread(buffer, 1, (size / 188) * 188, m_File);
+				if (m_Preload) {
+					if (m_Content.size() > m_Offset) {
+						size_t nBytesToRead = std::min<size_t>(m_Content.size() - m_Offset, size);
+						memcpy(buffer, m_Content.data() + m_Offset, nBytesToRead);
+						m_Offset += nBytesToRead;
+						return nBytesToRead;
+					}
+				}
 			}
+			return 0;
 		}
 
 		void FileSource::doStart() {
@@ -54,6 +66,13 @@ namespace fp {
 				throw std::runtime_error("File has incorrect format");
 			}
 			fseek(m_File, offset, SEEK_SET);
+
+			if (m_Preload) {
+				m_Content.resize(m_FileSize - offset);
+				fread(m_Content.data(), 1, m_Content.size(), m_File);
+				fclose(m_File);
+				m_File = nullptr;
+			}
 		}
 
 		void FileSource::doStop() {

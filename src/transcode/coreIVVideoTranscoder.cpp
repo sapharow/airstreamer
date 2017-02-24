@@ -54,9 +54,7 @@ namespace fp {
 
 		CoreIVVideoTranscoder::CoreIVVideoTranscoder(StreamType inputType, const VideoStreamRef& output) 
 		: VideoTranscoder(inputType, output)
-		{ 
-			m_File = fopen("test.h264", "wb");
-		}
+		{ }
 
 		static String getCompressionFormatStr(OMX_VIDEO_CODINGTYPE coding) {
 			switch (coding) {
@@ -237,51 +235,29 @@ namespace fp {
 		}
 
 		void CoreIVVideoTranscoder::onFillBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
-			printf("!!!! Callback onFillBufferDone (%s)\n", component->name().c_str());
 			if (buf) {
 				if (buf->nFilledLen) {
-					printf("\tencoder: filled output buffer with %u bytes of data\n", buf->nFilledLen);
-					fwrite(buf->pBuffer, 1, buf->nFilledLen, m_File);
+					output()->supplyFrame(buf->pBuffer, buf->nFilledLen);
 					buf->nFilledLen = 0;
-				} else {
-					printf("Got empty buffer!!!\n");
 				}
 			}
 		}
 
 		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) {
-			printf("!!!! Callback onEmptyBufferDone (%s)\n", component->name().c_str());
 		}
 
 		bool CoreIVVideoTranscoder::init() {
 			// Destroy previous tunnel
 			m_Decoder   = nullptr;
 			m_Encoder   = nullptr;
-			m_Clock     = nullptr;
-//			m_Scheduler = nullptr;
 			m_Tunnel    = nullptr;
 
 			// Create components list
 			m_Decoder   = createDecoderComponent(true, false);
 			m_Encoder   = createEncoderComponent(false, true);
-			m_Clock     = createClockComponent();
-			m_Scheduler = createSchedulerComponent();
 
 			// Create tunnel
 			m_Tunnel = std::make_shared<omx::Tunnel>();
-
-			// Configure clock
-			OMX_TIME_CONFIG_CLOCKSTATETYPE cstate;
-			memset(&cstate, 0, sizeof(cstate));
-			cstate.nSize = sizeof(cstate);
-			cstate.nVersion.nVersion = OMX_VERSION;
-			cstate.eState = OMX_TIME_ClockStateWaitingForStartTime;
-			cstate.nWaitMask = 1;
-			m_Clock->setParameter(OMX_IndexConfigTimeClockState, &cstate);
-
-			// Setup clock -> scheduler tunnel
-			m_Tunnel->set(m_Clock, 80, m_Scheduler, 12);
-			m_Clock->changeState(OMX_StateExecuting);
 
 			// Setup decoder
 			m_Decoder->changeState(OMX_StateIdle);
@@ -323,8 +299,6 @@ namespace fp {
 			if (!m_Decoder) {
 				throw std::runtime_error("Decoder is not initialised");
 			}
-    		printf("--- Frame supply start ---------------\n");
-#if 1
 			if (m_PipelineNeedsToSetup) {
 				if (!m_PipelineSet) {
 					printf("Setup pipeline\n");
@@ -341,7 +315,6 @@ namespace fp {
 					       def.format.video.nFrameWidth, def.format.video.nFrameHeight, def.format.video.xFramerate >> 16, def.format.video.xFramerate & 0xffff,
 					       getCompressionFormatStr(def.format.video.eCompressionFormat).c_str(), getColorFormatStr(def.format.video.eColorFormat).c_str());
 
-//					m_Encoder->changeState(OMX_StateIdle);
 					printf("Get encoder input format\n");
 					// Get input settings from encoder
 					OMX_VIDEO_PORTDEFINITIONTYPE decoderVideoDef = def.format.video;
@@ -390,15 +363,7 @@ namespace fp {
 					def.nPortIndex = 201;
 					m_Encoder->getParameter(OMX_IndexParamPortDefinition, &def);
 
-#if 1
 					m_Tunnel->set(m_Decoder, 131, m_Encoder, 200, 1000);
-#else
-					// Set Scheduler -> Encoder
-					m_Tunnel->set(m_Decoder, 131, m_Scheduler, 10);
-					m_Scheduler->changeState(OMX_StateExecuting);
-
-					m_Tunnel->set(m_Scheduler, 11, m_Encoder, 200, 1000);
-#endif
 					m_Encoder->enablePortBuffers(201);
 					m_Encoder->changeState(OMX_StateExecuting);
 
@@ -406,11 +371,8 @@ namespace fp {
 				}
 				m_PipelineNeedsToSetup = false;
 			}
-#endif
 
-			printf("\tdecoder: getting input buffer\n");
 			OMX_BUFFERHEADERTYPE* buf = m_Decoder->getInputBuffer(130, true);
-			printf("\tdecoder: got input buffer %p\n", buf);
 			if (buf) {
 				if (buf->nAllocLen < size) {
 					throw std::runtime_error("Buffer size is less than frame size");
@@ -428,45 +390,14 @@ namespace fp {
 					buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
 				}
 
-				printf("\tdecoder: emptying input buffer\n");
 				m_Decoder->emptyBuffer(buf);
-				printf("\tdecoder: emptied input buffer\n");
 			}
 
 			if (m_EncoderSet) {
 				while ( (buf = m_Encoder->getOutputBuffer(201, false)) != nullptr ) {
-					printf("\tencoder: filling output buffer\n");
 					m_Encoder->fillBuffer(buf);
-					printf("\tencoder: filled output buffer\n");
 				}
 			}
-
-#if 1
-#endif
-
-#if 0
-//			if (m_PipelineSet) 
-			{
-				printf("\tencoder: getting buffer\n");
-				buf = m_Encoder->getOutputBuffer(201, false);
-				if (buf) {
-					printf("\tencoder: got buffer %p\n", buf);
-					printf("\tencoder: filling buffer\n");
-					m_Encoder->fillBuffer(buf);
-					printf("\tencoder: filled buffer\n");
-				} else {
-					printf("\tencoder: got null buffer, skipped\n");
-				}
-				/*
-				if (buf) {
-				} else {
-		    		printf("\tencoder: got null buffer\n");
-				}
-				*/
-			}
-#endif
-			static int i = 0;
-    		printf("... Supplied frame %d ................\n", i++);
 		}
 
 		CoreIVVideoTranscoder::~CoreIVVideoTranscoder() {
@@ -483,9 +414,6 @@ namespace fp {
 				}
 			}
 
-			if (m_File) {
-				fclose(m_File);
-			}
 			m_Tunnel = nullptr;
 		}
 
