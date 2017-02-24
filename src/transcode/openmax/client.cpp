@@ -140,7 +140,7 @@ namespace fp {
 			}
 		}
 
-		void Client::omxFillBufferDoneCallback(void *userdata, COMPONENT_T *comp) {
+		void Client::omxFillBufferDoneCallback(void *userdata, COMPONENT_T *comp, OMX_BUFFERHEADERTYPE* pBuffer) {
 			Client* client = (Client*)userdata;
 			std::unique_lock<std::mutex> lock(client->m_Mutex);
 			auto it = client->m_Components.find(comp);
@@ -148,12 +148,12 @@ namespace fp {
 				auto component = it->second.lock();
 				if (component) {
 					lock.unlock();
-					client->onFillBufferDone(component);
+					client->onFillBufferDone(component, pBuffer);
 				}
 			}
 		}
 
-		void Client::omxEmptyBufferDoneCallback(void *userdata, COMPONENT_T *comp) {
+		void Client::omxEmptyBufferDoneCallback(void *userdata, COMPONENT_T *comp, OMX_BUFFERHEADERTYPE* pBuffer) {
 			Client* client = (Client*)userdata;
 			std::unique_lock<std::mutex> lock(client->m_Mutex);
 			auto it = client->m_Components.find(comp);
@@ -161,7 +161,7 @@ namespace fp {
 				auto component = it->second.lock();
 				if (component) {
 					lock.unlock();
-					client->onEmptyBufferDone(component);
+					client->onEmptyBufferDone(component, pBuffer);
 				}
 			}
 		}

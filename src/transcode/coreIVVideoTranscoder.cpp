@@ -58,13 +58,6 @@ namespace fp {
 			m_File = fopen("test.h264", "wb");
 		}
 
-		CoreIVVideoTranscoder::~CoreIVVideoTranscoder() {
-			if (m_File) {
-				fclose(m_File);
-			}
-			m_Tunnel = nullptr;
-		}
-
 		static String getCompressionFormatStr(OMX_VIDEO_CODINGTYPE coding) {
 			switch (coding) {
 				case OMX_VIDEO_CodingUnused: return "Unused";
@@ -227,6 +220,7 @@ namespace fp {
 				std::lock_guard<std::mutex> lock(m_Mutex);
 				m_Encoder->disablePortBuffers(201);
 				m_Encoder->enablePortBuffers(201);
+				m_EncoderSet = true;
 			}
 		}
 
@@ -242,11 +236,20 @@ namespace fp {
 			printf("!!!! Callback onConfigurationChanged (%s -> index %d)\n", component->name().c_str(), index);
 		}
 
-		void CoreIVVideoTranscoder::onFillBufferDone(const omx::ComponentRef& component) {
+		void CoreIVVideoTranscoder::onFillBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
 			printf("!!!! Callback onFillBufferDone (%s)\n", component->name().c_str());
+			if (buf) {
+				if (buf->nFilledLen) {
+					printf("\tencoder: filled output buffer with %u bytes of data\n", buf->nFilledLen);
+					fwrite(buf->pBuffer, 1, buf->nFilledLen, m_File);
+					buf->nFilledLen = 0;
+				} else {
+					printf("Got empty buffer!!!\n");
+				}
+			}
 		}
 
-		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component) {
+		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) {
 			printf("!!!! Callback onEmptyBufferDone (%s)\n", component->name().c_str());
 		}
 
@@ -429,17 +432,16 @@ namespace fp {
 				m_Decoder->emptyBuffer(buf);
 				printf("\tdecoder: emptied input buffer\n");
 			}
-#if 1
-			std::lock_guard<std::mutex> lock(m_Mutex);
-			while ( (buf = m_Encoder->getOutputBuffer(201, false)) != nullptr) {
-				printf("\tencoder: filling output buffer\n");
-				m_Encoder->fillBuffer(buf);
-				printf("\tencoder: filled output buffer\n");
-				if (buf->nFilledLen) {
-					fwrite(buf->pBuffer, 1, buf->nFilledLen, m_File);
-					buf->nFilledLen = 0;
+
+			if (m_EncoderSet) {
+				while ( (buf = m_Encoder->getOutputBuffer(201, false)) != nullptr ) {
+					printf("\tencoder: filling output buffer\n");
+					m_Encoder->fillBuffer(buf);
+					printf("\tencoder: filled output buffer\n");
 				}
 			}
+
+#if 1
 #endif
 
 #if 0
@@ -465,6 +467,26 @@ namespace fp {
 #endif
 			static int i = 0;
     		printf("... Supplied frame %d ................\n", i++);
+		}
+
+		CoreIVVideoTranscoder::~CoreIVVideoTranscoder() {
+
+			OMX_BUFFERHEADERTYPE* buf = m_Decoder->getInputBuffer(130, true);
+			buf->nFilledLen = 0;
+			buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
+			m_Decoder->emptyBuffer(buf);
+			if (m_EncoderSet) {
+				while ( (buf = m_Encoder->getOutputBuffer(201, false)) != nullptr ) {
+					printf("\tencoder: filling output buffer\n");
+					m_Encoder->fillBuffer(buf);
+					printf("\tencoder: filled output buffer\n");
+				}
+			}
+
+			if (m_File) {
+				fclose(m_File);
+			}
+			m_Tunnel = nullptr;
 		}
 
 		DecoderContextRef CoreIVVideoTranscoder::createDecoder() {

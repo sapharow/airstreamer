@@ -54,8 +54,8 @@ namespace fp {
 			void onEOS(const omx::ComponentRef& component, uint32_t port) override;
 			void onError(const omx::ComponentRef& component, uint32_t errorCode) override;
 			void onConfigurationChanged(const omx::ComponentRef& component, uint32_t index) override;
-			void onFillBufferDone(const omx::ComponentRef& component) override;
-			void onEmptyBufferDone(const omx::ComponentRef& component) override;
+			void onFillBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) override;
+			void onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) override;
 
 		private:
 			omx::TunnelRef m_Tunnel;
@@ -69,6 +69,7 @@ namespace fp {
 
 			FILE* m_File = nullptr;
 			std::mutex m_Mutex;
+			bool m_EncoderSet = false;
 		};
 
 	}

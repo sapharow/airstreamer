@@ -50,13 +50,13 @@ namespace fp {
 			 * When a buffer passed to an output port using the fillBuffer call is returned with this callback.
 			 * The user may then use the getOutputBuffer to retrieve the buffer
 			 */
-			virtual void onFillBufferDone(const ComponentRef& component) {}
+			virtual void onFillBufferDone(const ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) {}
 
 			/**
 			 * When a buffer passed to an input port using the emptyBuffer call is returned with this callback.
 			 * The user may then use the getInputBuffer to retrieve the buffer
 			 */
-			virtual void onEmptyBufferDone(const ComponentRef& component) {}
+			virtual void onEmptyBufferDone(const ComponentRef& component, OMX_BUFFERHEADERTYPE* pBuffer) {}
 
 		private:
 			ComponentRef createComponent(const String& name, 
@@ -69,8 +69,8 @@ namespace fp {
 			static void omxEOSCallback(void *userdata, COMPONENT_T *comp, OMX_U32 data);
 			static void omxErrorCallback(void *userdata, COMPONENT_T *comp, OMX_U32 data);
 			static void omxConfChangedCallback(void *userdata, COMPONENT_T *comp, OMX_U32 data);
-			static void omxFillBufferDoneCallback(void *userdata, COMPONENT_T *comp);
-			static void omxEmptyBufferDoneCallback(void *userdata, COMPONENT_T *comp);
+			static void omxFillBufferDoneCallback(void *userdata, COMPONENT_T *comp, OMX_BUFFERHEADERTYPE* pBuffer);
+			static void omxEmptyBufferDoneCallback(void *userdata, COMPONENT_T *comp, OMX_BUFFERHEADERTYPE* pBuffer);
 
 
 			ILCLIENT_T* m_Client = nullptr;
