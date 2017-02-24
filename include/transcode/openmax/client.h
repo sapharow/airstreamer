@@ -24,6 +24,7 @@ namespace fp {
 			ComponentRef createEncoderComponent(bool enableInputBuffers = false, bool enableOutputBuffers = false);
 			ComponentRef createClockComponent(bool enableInputBuffers = false, bool enableOutputBuffers = false);
 			ComponentRef createSchedulerComponent(bool enableInputBuffers = false, bool enableOutputBuffers = false);
+			ComponentRef createImageResizeComponent(bool enableInputBuffers = false, bool enableOutputBuffers = false);
 
 			/**
 			 * When OMX_EventPortSettingsChanged event occurs this function triggers. 

@@ -61,6 +61,7 @@ namespace fp {
 			omx::TunnelRef m_Tunnel;
 			omx::ComponentRef m_Decoder;
 			omx::ComponentRef m_Encoder;
+			omx::ComponentRef m_Resize;
 			bool m_PipelineSet = false;
 			bool m_FirstPacket = false;
 			bool m_PipelineNeedsToSetup = false;

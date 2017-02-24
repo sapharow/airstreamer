@@ -110,7 +110,7 @@ public:
 			break;
 		}
 
-		m_File = fopen(buffer, "wb");
+//		m_File = fopen(buffer, "wb");
 
 		m_StartTime = std::chrono::high_resolution_clock::now();
 	}
@@ -175,8 +175,8 @@ public:
 
 int main(int argc, char **argv)
 {
-//	MySource src("mpt-smart-travels-classical-clip.dvb");
-	MySource src("football.dvb");
+	MySource src("mpt-smart-travels-classical-clip.dvb");
+//	MySource src("football.dvb");
 //	fp::cap::DVBSource src(DVB_ADAPTER, DVB_FRONTEND, DVB_DEMUX);
 
 	src.start();

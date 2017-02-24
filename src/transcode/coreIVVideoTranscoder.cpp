@@ -8,11 +8,7 @@
 
 #include <IL/OMX_Core.h>
 
-#define WIDTH     640
-#define PITCH     ((WIDTH+31)&~31)
-#define HEIGHT    ((WIDTH)*9/16)
-#define HEIGHT16  ((HEIGHT+15)&~15)
-#define SIZE      ((WIDTH * HEIGHT16 * 3)/2)
+#define VIDEO_BITRATE 1000000
 
 namespace fp {
 	String getString(const char* fmt ...) {
@@ -26,6 +22,10 @@ namespace fp {
 		va_end(args);
 		return message;
 	}
+
+#define OMX_STRUC(struc, var, port) struc var; memset(&var, 0, sizeof(struc)); var.nSize = sizeof(struc); var.nVersion.nVersion = OMX_VERSION; var.nPortIndex = port;
+#define OMX_STRUC_N(struc, var) struc var; memset(&var, 0, sizeof(struc)); var.nSize = sizeof(struc); var.nVersion.nVersion = OMX_VERSION;
+
 
 	namespace trans {
 
@@ -80,6 +80,25 @@ namespace fp {
 			}
 		}
 
+		static String getImageCompressionFormatStr(OMX_IMAGE_CODINGTYPE coding) {
+			switch (coding) {
+				case OMX_IMAGE_CodingUnused: return "Unused";
+				case OMX_IMAGE_CodingAutoDetect: return "Autodetect";
+				case OMX_IMAGE_CodingJPEG: return "JPEG";
+				case OMX_IMAGE_CodingJPEG2K: return "JPEG 2000";
+				case OMX_IMAGE_CodingEXIF: return "EXIF";
+				case OMX_IMAGE_CodingTIFF: return "TIFF";
+				case OMX_IMAGE_CodingGIF: return "GIF";
+				case OMX_IMAGE_CodingPNG: return "PNG";
+				case OMX_IMAGE_CodingLZW: return "LZW";
+				case OMX_IMAGE_CodingBMP: return "BMP";
+				case OMX_IMAGE_CodingKhronosExtensions: return "KhronosExtensions";
+				case OMX_IMAGE_CodingVendorStartUnused: return "VendorStartUnused";
+				case OMX_IMAGE_CodingTGA: return "TGA";
+				case OMX_IMAGE_CodingPPM: return "PPM";
+				default:  return getString("Unknown (%d)", (int)coding);
+			}
+		}
 		static String getColorFormatStr(OMX_COLOR_FORMATTYPE color) {
 			switch (color) {
 				case OMX_COLOR_FormatUnused: return "Unused";
@@ -141,6 +160,18 @@ namespace fp {
 			}
 		}
 
+		static String getInterlaceStr(OMX_INTERLACETYPE interlace) {
+			switch (interlace) {
+				case OMX_InterlaceProgressive          : return "Progressive";
+				case OMX_InterlaceFieldSingleUpperFirst: return "Interlace field single upper first";
+				case OMX_InterlaceFieldSingleLowerFirst: return "Interlace field single lower first";
+				case OMX_InterlaceFieldsInterleavedUpperFirst: return "Interlace field interleaved upper first";
+				case OMX_InterlaceFieldsInterleavedLowerFirst: return "Interlace field interleaved lower first";
+				case OMX_InterlaceMixed: return "Progressive and interlaced frames are mixed";
+				default: return "Unknown interlace status";
+			}
+		}
+
 		static void printPortDefinitionType(OMX_PARAM_PORTDEFINITIONTYPE* def) {
 			if (!def) {
 				printf("(null)");
@@ -161,7 +192,7 @@ namespace fp {
 					                      "\t\tbFlagErrorConcealment = %s,\n\t\teCompressionFormat = %s,\n\t\teColorFormat = %s,\n"
 					                      "\t\tpNativeWindow = %p",
 					                      def->format.video.cMIMEType, 
-					                      def->format.video.pNativeWindow,
+					                      def->format.video.pNativeRender,
 					                      def->format.video.nFrameWidth,
 					                      def->format.video.nFrameHeight,
 					                      def->format.video.nStride,
@@ -176,7 +207,20 @@ namespace fp {
 					break;
 				case OMX_PortDomainImage:
 					domain = "Image";
-					formatStr = "\t\tNot implemented";
+					formatStr = getString("\t\tcMIMEType = %s,\n\t\tpNativeRender = %p,\n\t\tnFrameWidth = %u,\n\t\tnFrameHeight = %u,\n"
+					                      "\t\tnStride = %d,\n\t\tnSliceHeight = %u,\n"
+					                      "\t\tbFlagErrorConcealment = %s,\n\t\teCompressionFormat = %s,\n\t\teColorFormat = %s,\n"
+					                      "\t\tpNativeWindow = %p",
+					                      def->format.image.cMIMEType, 
+					                      def->format.image.pNativeRender,
+					                      def->format.image.nFrameWidth,
+					                      def->format.image.nFrameHeight,
+					                      def->format.image.nStride,
+					                      def->format.image.nSliceHeight,
+					                      def->format.image.bFlagErrorConcealment ? "YES" : "NO",
+					                      getImageCompressionFormatStr(def->format.image.eCompressionFormat).c_str(),
+					                      getColorFormatStr(def->format.image.eColorFormat).c_str(),
+					                      def->format.image.pNativeWindow);
 					break;
 				case OMX_PortDomainOther:
 					domain = "Other";
@@ -220,14 +264,45 @@ namespace fp {
 				m_Encoder->enablePortBuffers(201);
 				m_EncoderSet = true;
 			}
+			if ((component->name() == "resize") && (port == 61)) {
+				/**
+				 * Setup resize
+				 */
+				/*
+				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
+				m_Resize->getParameter(OMX_IndexParamPortDefinition, &resize);
+				resize.bPreserveAspectRatio = OMX_TRUE;
+				m_Resize->setParameter(OMX_IndexParamPortDefinition, &resize);
+				*/
+
+				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, def, 61);
+				m_Resize->getParameter(OMX_IndexParamPortDefinition, &def);
+				printPortDefinitionType(&def);
+				def.format.image.nFrameWidth /= 2;
+				def.format.image.nFrameHeight /= 2;
+				def.format.image.nStride /= 2;
+				def.format.image.nSliceHeight /= 2;
+				m_Resize->setParameter(OMX_IndexParamPortDefinition, &def);
+
+//				m_Resize->setParameter(OMX_IndexParamPortDefinition, &def);
+//				printPortDefinitionType(&def);
+//				m_Resize->getParameter(OMX_IndexParamPortDefinition, &def);
+//				printPortDefinitionType(&def);
+/*
+				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
+				resize.bPreserveAspectRatio = OMX_FALSE;
+				resize.bAllowUpscaling = OMX_FALSE;
+				m_Resize->setParameter(OMX_IndexParamResize, &resize);
+				*/
+			}
 		}
 
 		void CoreIVVideoTranscoder::onEOS(const omx::ComponentRef& component, uint32_t port) {
-			printf("!!!! Callback onEOS (%s -> port %d)\n", component->name().c_str(), port);
+			printf("EOS (%s -> port %d)\n", component->name().c_str(), port);
 		}
 
 		void CoreIVVideoTranscoder::onError(const omx::ComponentRef& component, uint32_t errorCode) {
-			printf("!!!! Callback onError (%s -> code %x)\n", component->name().c_str(), errorCode);
+			printf("Reported error %s -> code %x\n", component->name().c_str(), errorCode);
 		}
 
 		void CoreIVVideoTranscoder::onConfigurationChanged(const omx::ComponentRef& component, uint32_t index) {
@@ -255,6 +330,7 @@ namespace fp {
 			// Create components list
 			m_Decoder   = createDecoderComponent(true, false);
 			m_Encoder   = createEncoderComponent(false, true);
+			m_Resize    = createImageResizeComponent();
 
 			// Create tunnel
 			m_Tunnel = std::make_shared<omx::Tunnel>();
@@ -262,28 +338,17 @@ namespace fp {
 			// Setup decoder
 			m_Decoder->changeState(OMX_StateIdle);
 
-			OMX_VIDEO_PARAM_PORTFORMATTYPE format;
-			memset(&format, 0, sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE));
-			format.nSize = sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE);
-			format.nVersion.nVersion = OMX_VERSION;
-			format.nPortIndex = 130;
+			OMX_STRUC(OMX_VIDEO_PARAM_PORTFORMATTYPE, format, 130);
 			format.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
 			format.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;
 			m_Decoder->setParameter(OMX_IndexParamVideoPortFormat, &format);
 
-			OMX_PARAM_DATAUNITTYPE dataUnit;
-			memset(&dataUnit, 0, sizeof(OMX_PARAM_DATAUNITTYPE));
-			dataUnit.nSize = sizeof(OMX_PARAM_DATAUNITTYPE);
-			dataUnit.nVersion.nVersion = OMX_VERSION;
-			dataUnit.nPortIndex = 130;
+			OMX_STRUC(OMX_PARAM_DATAUNITTYPE, dataUnit, 130);
 			dataUnit.eUnitType = OMX_DataUnitCodedPicture;
 			dataUnit.eEncapsulationType = OMX_DataEncapsulationElementaryStream;
 			m_Decoder->setParameter(OMX_IndexParamBrcmDataUnit, &dataUnit);
 
-			OMX_PARAM_BRCMVIDEODECODEERRORCONCEALMENTTYPE errorConceal;
-			memset(&errorConceal, 0, sizeof(OMX_PARAM_BRCMVIDEODECODEERRORCONCEALMENTTYPE));
-			errorConceal.nSize = sizeof(OMX_PARAM_BRCMVIDEODECODEERRORCONCEALMENTTYPE);
-			errorConceal.nVersion.nVersion = OMX_VERSION;
+			OMX_STRUC_N(OMX_PARAM_BRCMVIDEODECODEERRORCONCEALMENTTYPE, errorConceal);
 			errorConceal.bStartWithValidFrame = OMX_FALSE;
 			m_Decoder->setParameter(OMX_IndexParamBrcmVideoDecodeErrorConcealment, &errorConceal);
 
@@ -303,17 +368,22 @@ namespace fp {
 				if (!m_PipelineSet) {
 					printf("Setup pipeline\n");
 
+					/**
+					 * Setup encoder
+					 */
+
 					// Get output settings from decoder
-					OMX_PARAM_PORTDEFINITIONTYPE def;
-					memset(&def, 0, sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
-					def.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
-					def.nVersion.nVersion = OMX_VERSION;
-					def.nPortIndex = 131;
+					OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, def, 131);
 					m_Decoder->getParameter(OMX_IndexParamPortDefinition, &def);
 
-					printf("Decoder reported the following output format:\n\tWidth = %u\n\tHeight = %u\n\tFramerate = %u.%u\n\tCompression = %s\n\tColorFormat = %s\n",
+					OMX_STRUC(OMX_CONFIG_INTERLACETYPE, interlace, 131);
+					m_Decoder->getParameter(OMX_IndexConfigCommonInterlace, &interlace);
+
+					printf("Decoder reported the following output format:\n\tWidth = %u\n\tHeight = %u\n\tFramerate = %u.%u\n\tCompression = %s\n\tColorFormat = %s\n"
+					       "\tInterlace = \"%s\" (Repeat first field: %s)\n",
 					       def.format.video.nFrameWidth, def.format.video.nFrameHeight, def.format.video.xFramerate >> 16, def.format.video.xFramerate & 0xffff,
-					       getCompressionFormatStr(def.format.video.eCompressionFormat).c_str(), getColorFormatStr(def.format.video.eColorFormat).c_str());
+					       getCompressionFormatStr(def.format.video.eCompressionFormat).c_str(), getColorFormatStr(def.format.video.eColorFormat).c_str(),
+					       getInterlaceStr(interlace.eMode).c_str(), interlace.bRepeatFirstField == OMX_TRUE ? "YES" : "NO");
 
 					printf("Get encoder input format\n");
 					// Get input settings from encoder
@@ -337,34 +407,43 @@ namespace fp {
 
 					// Setup encoder output
 					printf("Setup encoder output format\n");
-					OMX_VIDEO_PARAM_PORTFORMATTYPE format;
-					memset(&format, 0, sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE));
-					format.nSize = sizeof(OMX_VIDEO_PARAM_PORTFORMATTYPE);
-					format.nVersion.nVersion = OMX_VERSION;
-					format.nPortIndex = 201;
+					OMX_STRUC(OMX_VIDEO_PARAM_PORTFORMATTYPE, format, 201);
 					format.eCompressionFormat = OMX_VIDEO_CodingAVC;
 					m_Encoder->setParameter(OMX_IndexParamVideoPortFormat, &format);
 
 					// Setup codec
 					printf("Setup encoder coding settings\n");
-					OMX_VIDEO_PARAM_BITRATETYPE bitrateType;
+
 					// set current bitrate to 1Mbit
-					memset(&bitrateType, 0, sizeof(OMX_VIDEO_PARAM_BITRATETYPE));
-					bitrateType.nSize = sizeof(OMX_VIDEO_PARAM_BITRATETYPE);
-					bitrateType.nVersion.nVersion = OMX_VERSION;
+					OMX_STRUC(OMX_VIDEO_PARAM_BITRATETYPE, bitrateType, 201);
 					bitrateType.eControlRate = OMX_Video_ControlRateVariable;
-					bitrateType.nTargetBitrate = 1000000;
-					bitrateType.nPortIndex = 201;
+					bitrateType.nTargetBitrate = VIDEO_BITRATE;
 					m_Encoder->setParameter(OMX_IndexParamVideoBitrate, &bitrateType);
+#if 0
+					// set AVC profile and level
+					OMX_STRUC(OMX_VIDEO_PARAM_PROFILELEVELTYPE, avcProfile, 201);
+					avcProfile.eProfile = OMX_VIDEO_AVCProfileHigh;
+					avcProfile.eLevel = OMX_VIDEO_AVCLevel4;
+					m_Encoder->setParameter(OMX_IndexParamVideoProfileLevelCurrent, &avcProfile);					
+#endif
+					// make encoder insert SPS/PPS information each I-Frame
+					OMX_STRUC(OMX_CONFIG_PORTBOOLEANTYPE, psInline, 201);
+					psInline.bEnabled = OMX_TRUE;
+					m_Encoder->setParameter(OMX_IndexParamBrcmVideoAVCInlineHeaderEnable, &psInline);
 
-					memset(&def, 0, sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
-					def.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
-					def.nVersion.nVersion = OMX_VERSION;
-					def.nPortIndex = 201;
-					m_Encoder->getParameter(OMX_IndexParamPortDefinition, &def);
+					// make encoder insert SEI messages
+					OMX_STRUC(OMX_PARAM_BRCMVIDEOAVCSEIENABLETYPE, seiInline, 201);
+					seiInline.bEnable = OMX_TRUE;
+					m_Encoder->setParameter(OMX_IndexParamBrcmVideoAVCSEIEnable, &seiInline);
 
-					m_Tunnel->set(m_Decoder, 131, m_Encoder, 200, 1000);
+					/**
+					 * Setup tunnels
+					 */
+					m_Tunnel->set(m_Decoder, 131, m_Resize, 60, 1000);
+					m_Tunnel->set(m_Resize, 61, m_Encoder, 200, 1000);
+
 					m_Encoder->enablePortBuffers(201);
+					m_Resize->changeState(OMX_StateExecuting);
 					m_Encoder->changeState(OMX_StateExecuting);
 
 					m_PipelineSet = true;

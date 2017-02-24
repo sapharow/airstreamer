@@ -61,6 +61,10 @@ namespace fp {
 			return createComponent("video_encode", {200}, {201}, enableInputBuffers, enableOutputBuffers);
 		}
 
+		ComponentRef Client::createImageResizeComponent(bool enableInputBuffers, bool enableOutputBuffers) {
+			return createComponent("resize", {60}, {61}, enableInputBuffers, enableOutputBuffers);
+		}
+
 		ComponentRef Client::createComponent(const String& name, 
 		                                     const std::set<int>& iPorts,
 		                                     const std::set<int>& oPorts,
