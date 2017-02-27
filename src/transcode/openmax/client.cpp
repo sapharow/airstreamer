@@ -78,6 +78,10 @@ namespace fp {
 			return createComponent("resize", {60}, {61}, enableInputBuffers, enableOutputBuffers);
 		}
 
+		ComponentRef Client::createImageFXComponent(bool enableInputBuffers, bool enableOutputBuffers) {
+			return createComponent("image_fx", {190}, {191}, enableInputBuffers, enableOutputBuffers);
+		}
+
 		ComponentRef Client::createComponent(const String& name, 
 		                                     const std::set<int>& iPorts,
 		                                     const std::set<int>& oPorts,

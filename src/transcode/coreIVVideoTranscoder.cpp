@@ -258,29 +258,47 @@ namespace fp {
 					m_PipelineNeedsToSetup = true;
 				}
 			}
+			if ((component->name() == "image_fx") && (port == 191)) {
+				/**
+				 * Setup deinterlace
+				 */
+				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, defOut, 191);
+				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, defIn, 190);
+				m_ImageFX->getParameter(OMX_IndexParamPortDefinition, &defOut);
+				m_ImageFX->getParameter(OMX_IndexParamPortDefinition, &defIn);
+				printPortDefinitionType(&defOut);
+				printPortDefinitionType(&defIn);
+				
+				OMX_STRUC(OMX_CONFIG_IMAGEFILTERTYPE, filter, 191);
+				m_ImageFX->getParameter(OMX_IndexConfigCommonImageFilter, &filter);
+				printf("filter=%i\n", (int)filter.eImageFilter);
+//				filter.eImageFilter = OMX_ImageFilterDeInterlaceAdvanced;
+//				m_ImageFX->setParameter(OMX_IndexConfigCommonImageFilter, &filter);
+			}
+			if ((component->name() == "resize") && (port == 61)) {
+#if 0				
+				/**
+				 * Setup resize
+				 */
+				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, defIn, 60);
+				m_Resize->getParameter(OMX_IndexParamPortDefinition, &defIn);
+				printPortDefinitionType(&defIn);
+
+				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, defOut, 61);
+				m_Resize->getParameter(OMX_IndexParamPortDefinition, &defOut);
+				defOut.format.image.nFrameWidth /= 2;
+				defOut.format.image.nFrameHeight /= 2;
+				defOut.format.image.nStride /= 2;
+				defOut.format.image.nSliceHeight = defOut.format.image.nFrameHeight;
+				printPortDefinitionType(&defOut);
+				m_Resize->setParameter(OMX_IndexParamPortDefinition, &defOut);
+#endif
+			}
 			if ((component->name() == "video_encode") && (port == 201)) {
 				std::lock_guard<std::mutex> lock(m_Mutex);
 				m_Encoder->disablePortBuffers(201);
 				m_Encoder->enablePortBuffers(201);
 				m_EncoderSet = true;
-			}
-			if ((component->name() == "resize") && (port == 61)) {
-				/**
-				 * Setup resize
-				 */
-//				OMX_STRUC(OMX_PARAM_RESIZETYPE, resize, 61);
-//				m_Resize->getParameter(OMX_IndexParamPortDefinition, &resize);
-//				resize.bPreserveAspectRatio = OMX_TRUE;
-//				m_Resize->setParameter(OMX_IndexParamPortDefinition, &resize);
-
-				OMX_STRUC(OMX_PARAM_PORTDEFINITIONTYPE, def, 61);
-				m_Resize->getParameter(OMX_IndexParamPortDefinition, &def);
-				printPortDefinitionType(&def);
-				def.format.image.nFrameWidth /= 2;
-				def.format.image.nFrameHeight /= 2;
-				def.format.image.nStride /= 2;
-				def.format.image.nSliceHeight /= 2;
-				m_Resize->setParameter(OMX_IndexParamPortDefinition, &def);
 			}
 		}
 
@@ -299,6 +317,7 @@ namespace fp {
 		void CoreIVVideoTranscoder::onFillBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
 			if (buf) {
 				if (buf->nFilledLen) {
+					/*
 					printf("Frame: %li\n", (((uint64_t)buf->nTimeStamp.nHighPart) << 32) | buf->nTimeStamp.nLowPart);
 					if (buf->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
 						printf("\tSPS/PPS\n");
@@ -324,6 +343,9 @@ namespace fp {
 					if (buf->nFlags & OMX_BUFFERFLAG_EXTRADATA) {
 						printf("\tExtra data\n");
 					}
+					*/
+					static int i = 0;
+					printf("Got %i frame from encoder with %u bytes\n", i++, buf->nFilledLen);
 					output()->supplyFrame(buf->pBuffer, buf->nFilledLen);
 					buf->nFilledLen = 0;
 				}
@@ -331,10 +353,12 @@ namespace fp {
 		}
 
 		void CoreIVVideoTranscoder::onEmptyBufferDone(const omx::ComponentRef& component, OMX_BUFFERHEADERTYPE* buf) {
-			printf("Sent frame: %li\n", (((uint64_t)buf->nTimeStamp.nHighPart) << 32) | buf->nTimeStamp.nLowPart);
+			//printf("Sent frame: %li\n", (((uint64_t)buf->nTimeStamp.nHighPart) << 32) | buf->nTimeStamp.nLowPart);
+			static int i = 0;
+			printf("Supplied %i frame to decoder with %u bytes\n", i++, buf->nFilledLen);
 		}
 
-		bool CoreIVVideoTranscoder::init() {
+		void CoreIVVideoTranscoder::init() {
 			// Destroy previous tunnel
 			m_Decoder   = nullptr;
 			m_Encoder   = nullptr;
@@ -344,6 +368,7 @@ namespace fp {
 			m_Decoder   = createDecoderComponent(true, false);
 			m_Encoder   = createEncoderComponent(false, true);
 			m_Resize    = createImageResizeComponent();
+			m_ImageFX   = createImageFXComponent();
 
 			// Create tunnel
 			m_Tunnel = std::make_shared<omx::Tunnel>();
@@ -370,7 +395,6 @@ namespace fp {
 
 			// Wait for event
 			printf("Transcoder initialised\n");
-			return true;
 		}
 
 		void CoreIVVideoTranscoder::supplyFrame(const uint8_t* data, size_t size, Stream::Metadata* metadata) {
@@ -398,6 +422,7 @@ namespace fp {
 					       getCompressionFormatStr(def.format.video.eCompressionFormat).c_str(), getColorFormatStr(def.format.video.eColorFormat).c_str(),
 					       getInterlaceStr(interlace.eMode).c_str(), interlace.bRepeatFirstField == OMX_TRUE ? "YES" : "NO");
 
+
 					printf("Get encoder input format\n");
 					// Get input settings from encoder
 					OMX_VIDEO_PORTDEFINITIONTYPE decoderVideoDef = def.format.video;
@@ -408,14 +433,8 @@ namespace fp {
 					m_Encoder->getParameter(OMX_IndexParamPortDefinition, &def);
 
 					// Adjust encoder input settings and re-set back to encoder
-					printf("Adjust encoder input format to match decoder output\n");
-					def.format.video.nFrameWidth = decoderVideoDef.nFrameWidth;
-					def.format.video.nFrameHeight = decoderVideoDef.nFrameHeight;
-					def.format.video.nStride = decoderVideoDef.nStride;
-					def.format.video.nSliceHeight = decoderVideoDef.nSliceHeight;
+					printf("Adjust encoder's frame rate to match decoder\n");
 					def.format.video.xFramerate = decoderVideoDef.xFramerate;
-					def.format.video.eCompressionFormat = decoderVideoDef.eCompressionFormat;
-					def.format.video.eColorFormat = decoderVideoDef.eColorFormat;
 					m_Encoder->setParameter(OMX_IndexParamPortDefinition, &def);
 
 					// Setup encoder output
@@ -432,13 +451,7 @@ namespace fp {
 					bitrateType.eControlRate = OMX_Video_ControlRateVariable;
 					bitrateType.nTargetBitrate = VIDEO_BITRATE;
 					m_Encoder->setParameter(OMX_IndexParamVideoBitrate, &bitrateType);
-#if 0
-					// set AVC profile and level
-					OMX_STRUC(OMX_VIDEO_PARAM_PROFILELEVELTYPE, avcProfile, 201);
-					avcProfile.eProfile = OMX_VIDEO_AVCProfileHigh;
-					avcProfile.eLevel = OMX_VIDEO_AVCLevel4;
-					m_Encoder->setParameter(OMX_IndexParamVideoProfileLevelCurrent, &avcProfile);					
-#endif
+
 					// make encoder insert SPS/PPS information each I-Frame
 					OMX_STRUC(OMX_CONFIG_PORTBOOLEANTYPE, psInline, 201);
 					psInline.bEnabled = OMX_TRUE;
@@ -452,10 +465,16 @@ namespace fp {
 					/**
 					 * Setup tunnels
 					 */
+#if 1
 					m_Tunnel->set(m_Decoder, 131, m_Resize, 60, 1000);
 					m_Tunnel->set(m_Resize, 61, m_Encoder, 200, 1000);
-
+#else
+					m_Tunnel->set(m_Decoder, 131, m_ImageFX, 190, 1000);
+					m_Tunnel->set(m_ImageFX, 191, m_Resize, 60, 1000);
+					m_Tunnel->set(m_Resize, 61, m_Encoder, 200, 1000);
+#endif
 					m_Encoder->enablePortBuffers(201);
+//					m_ImageFX->changeState(OMX_StateExecuting);
 					m_Resize->changeState(OMX_StateExecuting);
 					m_Encoder->changeState(OMX_StateExecuting);
 
@@ -475,11 +494,14 @@ namespace fp {
 				buf->nFilledLen = size;
 				buf->nOffset = 0;
 
-				if (m_FirstPacket) {
+				if (m_FirstPacket && size) {
 					m_FirstPacket = false;
 					buf->nFlags = OMX_BUFFERFLAG_STARTTIME;
 				} else {
 					buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+					if (!size) {
+						buf->nFlags |= OMX_BUFFERFLAG_EOS;
+					}
 				}
 				if (metadata && metadata->pts) {
 					auto pts = *metadata->pts;
@@ -495,23 +517,6 @@ namespace fp {
 					m_Encoder->fillBuffer(buf);
 				}
 			}
-		}
-
-		CoreIVVideoTranscoder::~CoreIVVideoTranscoder() {
-
-			OMX_BUFFERHEADERTYPE* buf = m_Decoder->getInputBuffer(130, true);
-			buf->nFilledLen = 0;
-			buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
-			m_Decoder->emptyBuffer(buf);
-			if (m_EncoderSet) {
-				while ( (buf = m_Encoder->getOutputBuffer(201, false)) != nullptr ) {
-					printf("\tencoder: filling output buffer\n");
-					m_Encoder->fillBuffer(buf);
-					printf("\tencoder: filled output buffer\n");
-				}
-			}
-
-			m_Tunnel = nullptr;
 		}
 
 		DecoderContextRef CoreIVVideoTranscoder::createDecoder() {

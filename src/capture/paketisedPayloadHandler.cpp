@@ -18,9 +18,6 @@ namespace fp {
 		}
 
 		void PaketisedPayloadHandler::supplyStream(const StreamRef& stream) {
-			if (!m_DataSize) {
-				return;
-			}
 			stream->supplyFrame(m_Data.data(), m_DataSize);
 		}
 

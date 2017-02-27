@@ -77,11 +77,10 @@ namespace fp {
 			m_EncoderContext = nullptr;
 		}
 
-		bool VideoTranscoder::init() {
+		void VideoTranscoder::init() {
 			m_DecoderContext = createDecoder();
 			if (!m_DecoderContext) {
-				return false;
-//				throw std::runtime_error("Initialisation failed: Error creating decoder context");
+				throw std::runtime_error("Initialisation failed: Error creating decoder context");
 			}
 
 			// Allocate frames
@@ -92,8 +91,6 @@ namespace fp {
 				}
 			}
 			m_DecodedFrame = allocateFrame();
-
-			return true;
 		}
 
 		void VideoTranscoder::reset() {

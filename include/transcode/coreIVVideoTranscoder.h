@@ -36,11 +36,10 @@ namespace fp {
 		/**
 		 * Transcoder class
 		 */
-		class CoreIVVideoTranscoder : public VideoTranscoder, public omx::Client {
+		class CoreIVVideoTranscoder : public virtual VideoTranscoder, public virtual omx::Client {
 		public:
 			CoreIVVideoTranscoder(StreamType inputType, const VideoStreamRef& output);
-			~CoreIVVideoTranscoder() override;
-			bool init() override;
+			void init() override;
 			void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*) override;
 	
 		protected:
@@ -62,6 +61,7 @@ namespace fp {
 			omx::ComponentRef m_Decoder;
 			omx::ComponentRef m_Encoder;
 			omx::ComponentRef m_Resize;
+			omx::ComponentRef m_ImageFX;
 			bool m_PipelineSet = false;
 			bool m_FirstPacket = false;
 			bool m_PipelineNeedsToSetup = false;

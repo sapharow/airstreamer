@@ -73,6 +73,11 @@ namespace fp {
 				if (nBytesRead == 0) {
 					// Exit thread
 					printf("EOS reached\n");
+					for (size_t i=0; i<pidPayload.size(); i++) {
+						if (pidPayload[i]) {
+							pidPayload[i]->reset();
+						}
+					}
 					break;
 				}
 				bufferWritePtr += nBytesRead;

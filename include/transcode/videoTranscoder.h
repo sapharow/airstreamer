@@ -126,7 +126,7 @@ namespace fp {
 			~VideoTranscoder() override;
 
 			// Overrides
-			bool init() override;
+			void init() override;
 			void supplyFrame(const uint8_t* data, size_t size, Stream::Metadata*) override;
 			void reset() override;
 

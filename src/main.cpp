@@ -82,9 +82,7 @@ public:
 #else
 		m_Transcoder = std::make_shared<fp::trans::SoftwareVideoTranscoder>(type(), m_Output);
 #endif
-		if (!m_Transcoder->init()) {
-			printf("error\n");
-		}
+		m_Transcoder->init();
 
 		// Create stream
 		char buffer[256];
@@ -116,10 +114,10 @@ public:
 	}
 
 	~MyVideoStream() override {
+		m_Transcoder = nullptr;
 		auto end = std::chrono::high_resolution_clock::now();
 		auto msPassed = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_StartTime).count();
 		printf("transcode speed = %.2f frames/sec\n", (float)m_NFrames * 1000.f / (float)msPassed);
-
 		if (m_File) {
 			fclose(m_File);
 		}

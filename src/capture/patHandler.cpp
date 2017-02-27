@@ -15,7 +15,7 @@ namespace fp {
 
 		void PATHandler::supplyFrame(const uint8_t* data, size_t size, Metadata*) {
 			// PAT table
-			if (!m_PAT) {
+			if (!m_PAT && size) {
 				size_t offset = (data[0] == 0) ? 1 : 0;
 				ssize_t patSize = dvb_table_pat_init(dvb_fe_dummy(), data+offset, size-offset, &m_PAT);
 				if (patSize != -1) {
